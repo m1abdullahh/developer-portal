@@ -1,0 +1,71 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same branch makes the in-flight run redundant.
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  DATABASE_URL: file:./dev.db
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    # PRs must stay under ~15 minutes (doc 08 §7) — slower than that and people stop running them.
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      # Guards the package boundaries from docs/plan/00-architecture.md §2.
+      # Cruises source-to-source via tsconfig.depcruise.json — see the comment in that file.
+      - name: Architecture rules
+        run: npm run depcruise
+
+  # Verifies the version manifest still resolves. Runs separately so a registry outage
+  # cannot block an otherwise-good PR.
+  versions:
+    name: Version manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check pinned versions resolve
+        run: node scripts/check-versions.mjs

@@ -1,0 +1,25 @@
+{
+  // Used ONLY by dependency-cruiser, never by a build.
+  //
+  // Workspace packages resolve through their package.json "main" into dist/, which the cruise
+  // excludes as build output. The effect is that every cross-package edge becomes invisible and
+  // the architectural rules (core-is-leaf, generator-scope, no-packages-to-apps) silently pass
+  // no matter what is imported.
+  //
+  // These path mappings point @idp/* at source instead, so the cruise analyses real
+  // source-to-source edges. The actual build still compiles against dist/ as normal.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "paths": {
+      "@idp/core": ["packages/core/src/index.ts"],
+      "@idp/db": ["packages/db/src/index.ts"],
+      "@idp/generator": ["packages/generator/src/index.ts"],
+      "@idp/queue": ["packages/queue/src/index.ts"],
+      "@idp/templates": ["packages/templates/src/index.ts"],
+      "@idp/vcs": ["packages/vcs/src/index.ts"]
+    }
+  }
+}

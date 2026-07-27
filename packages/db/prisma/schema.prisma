@@ -1,0 +1,168 @@
+// Portal persistence — see docs/plan/07-service-catalog-openapi.md §1
+//
+// PROVIDER NOTE
+// Prisma fixes the datasource provider at schema level; it cannot be switched by env var.
+// This schema is therefore written to the *intersection* of SQLite and PostgreSQL features
+// so the move to Postgres is a one-line provider change plus a fresh migration, with no
+// model rewrites:
+//
+//   - no scalar lists   (String[] is Postgres-only)  -> JSON-encoded String, typed accessors in src/json.ts
+//   - no native enums   (enum is Postgres-only)      -> String, validated by the Zod enums in @idp/core
+//   - no Json scalar    (patchy on SQLite)           -> String
+//
+// The tradeoff is deliberate: zero-setup local dev (SQLite file, no Docker required) matters
+// more for an internal tool than native column types, and portability is preserved.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7 removed `url` from the datasource block. The connection string now lives in
+// prisma.config.ts (for CLI/migrate) and is supplied to PrismaClient via a driver adapter
+// (for runtime) — see src/client.ts.
+datasource db {
+  provider = "sqlite"
+}
+
+/// A provisioned project. `spec` holds the full ProjectSpec that produced it — this is the
+/// provenance record that makes fleet queries, regeneration and drift analysis possible.
+model Service {
+  id          String  @id @default(cuid())
+  org         String
+  slug        String
+  displayName String
+  clientName  String
+  description String?
+
+  repoUrl String
+  repoId  String
+
+  /// JSON-encoded ProjectSpec. Read via readSpec() in src/json.ts, never JSON.parse directly.
+  spec        String
+  specVersion Int
+
+  /// EXPERIMENTAL | PRODUCTION | DEPRECATED
+  lifecycle String @default("EXPERIMENTAL")
+  ownerTeam String?
+  /// JSON-encoded string[]
+  tags      String @default("[]")
+
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastSyncedAt DateTime?
+
+  health ServiceHealth?
+  jobs   ProvisionJob[]
+
+  /// The real guard against two concurrent provisions claiming one slug.
+  @@unique([org, slug])
+  @@index([org])
+  @@index([clientName])
+  @@index([lifecycle])
+}
+
+/// Populated by the scheduled reconciler (doc 07 §5), never written by the wizard.
+/// Nullable throughout: a status we could not fetch must read as unknown, never as stale-but-current.
+model ServiceHealth {
+  serviceId String  @id
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  ciStatus     String?
+  lastCommitAt DateTime?
+  lastCommitSha String?
+  openPrCount  Int?
+
+  argoSyncStatus String?
+  argoHealth     String?
+
+  openApiUrl String?
+
+  fetchedAt DateTime @default(now())
+}
+
+/// One provisioning run. Retained after completion — storing the spec and stage timings is
+/// what makes any past generation reproducible via `idp generate --spec <stored>`.
+model ProvisionJob {
+  id String @id
+
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  org  String
+  slug String
+
+  /// JSON-encoded ProjectSpec
+  spec String
+  /// Hash of (org, slug, spec) — the idempotency key (doc 06 §5)
+  specHash String
+
+  /// queued | resolving | generating | pushing | configuring | completed
+  /// | completed_with_warnings | failed
+  status String @default("queued")
+
+  /// JSON-encoded StageRecord[] with per-stage timings
+  stages String @default("[]")
+  /// JSON-encoded MergeReport
+  mergeReport String?
+  /// JSON-encoded Diagnostic[]
+  warnings String @default("[]")
+
+  errorCode    String?
+  errorMessage String?
+
+  repoUrl String?
+
+  requestedById String?
+  requestedBy   User?   @relation(fields: [requestedById], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  durationMs  Int?
+
+  @@index([status])
+  @@index([org, slug])
+  @@index([specHash])
+  @@index([createdAt])
+}
+
+/// Wizard draft — autosaved so a half-finished spec survives a reload or a machine switch.
+model Draft {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// JSON-encoded partial ProjectSpec — deliberately unvalidated, drafts are incomplete by nature
+  spec String
+  /// Furthest step the user has reached (1-4)
+  step Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+/// Portal user, resolved from GitHub OAuth. Access is gated on org membership (doc 00 §7).
+model User {
+  id            String  @id @default(cuid())
+  githubId      String  @unique
+  githubLogin   String  @unique
+  name          String?
+  email         String?
+  avatarUrl     String?
+
+  /// viewer | provisioner | admin
+  role String @default("viewer")
+
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime?
+
+  services Service[]
+  jobs     ProvisionJob[]
+  drafts   Draft[]
+}

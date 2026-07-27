@@ -1,0 +1,23 @@
+# Normalise to LF in the repo and in the working tree on every platform.
+#
+# Without this, git's autocrlf converts checkouts to CRLF on Windows, which then fails
+# `prettier --check` (endOfLine: lf) for every Windows contributor — a confusing failure that
+# looks like a formatting bug rather than a line-ending one.
+* text=auto eol=lf
+
+# Binary — never convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated; keep out of diffs and language stats.
+package-lock.json linguist-generated=true -diff
+packages/db/src/generated/** linguist-generated=true
+
+# Template assets are source, but EJS is not a recognised language here.
+*.ejs.t linguist-language=EJS

@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.next/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# Generated artefacts. These are rewritten on every build, so formatting them creates a
+# permanent dirty-tree / failing-format-check loop.
+packages/db/src/generated/
+**/next-env.d.ts
+
+# Template assets contain EJS interpolation and are not valid source until rendered.
+packages/templates/assets/
+
+# Golden snapshots are generated artefacts — formatting them would create false diffs.
+tests/golden/__snapshots__/
+
+# Prisma owns its own formatting via `prisma format`.
+packages/db/prisma/schema.prisma
+packages/db/prisma/migrations/

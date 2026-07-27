@@ -1,0 +1,28 @@
+{
+  "name": "@idp/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rimraf dist .tsbuildinfo"
+  },
+  "dependencies": {
+    "@idp/core": "*",
+    "@idp/db": "*",
+    "@idp/generator": "*",
+    "@idp/queue": "*",
+    "@idp/vcs": "*",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "tsx": "4.23.1"
+  }
+}

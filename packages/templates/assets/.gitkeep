@@ -1,0 +1,2 @@
+# Template assets (.ejs.t) land here in P1.2.
+# This directory is excluded from lint/format/tsc — see eslint.config.js and .prettierignore.

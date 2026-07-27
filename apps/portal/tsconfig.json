@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Next.js owns compilation; tsc is only used for typechecking here.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
+
+    // Browser + React, unlike the Node-only base config.
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": ["node", "react", "react-dom"],
+    "jsx": "preserve",
+
+    // Next uses the bundler resolver, not NodeNext.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next", "dist"]
+}

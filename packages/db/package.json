@@ -1,0 +1,38 @@
+{
+  "name": "@idp/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ignore-pattern src/generated",
+    "test": "vitest run",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "clean": "rimraf dist src/generated .tsbuildinfo"
+  },
+  "dependencies": {
+    "@idp/core": "*",
+    "@prisma/adapter-better-sqlite3": "7.9.1",
+    "@prisma/client": "7.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "prisma": "7.9.1"
+  }
+}

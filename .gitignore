@@ -1,0 +1,57 @@
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# generated code — reproduced by `npm run build`, never committed
+packages/db/src/generated/
+next-env.d.ts
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# secrets — never commit
+*.pem
+*.key
+github-app-*.private-key.pem
+
+# test / coverage
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# generator scratch output
+.tmp/
+tmp-out/
+generated-out/
+
+# db
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# editor / os
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*

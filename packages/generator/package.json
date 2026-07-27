@@ -1,0 +1,33 @@
+{
+  "name": "@idp/generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rimraf dist .tsbuildinfo"
+  },
+  "dependencies": {
+    "@idp/core": "*",
+    "@idp/templates": "*",
+    "ejs": "6.0.1",
+    "ts-morph": "28.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1"
+  }
+}
