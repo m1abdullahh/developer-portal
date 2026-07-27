@@ -1,0 +1,10 @@
+# The correctness gate. Mirrors CI minus the format check (pre-commit already formatted).
+#
+# Turborepo caches aggressively, so an unchanged repo returns in seconds. Deliberately does
+# NOT run `next build` — that is CI's job, and adding ~40s to every push is how teams start
+# reaching for --no-verify.
+#
+# Escape hatch when genuinely needed: git push --no-verify
+npm run typecheck
+npm run test
+npm run depcruise

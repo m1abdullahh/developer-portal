@@ -1,0 +1,3 @@
+# Enforces Conventional Commits, which the repo history already follows.
+# Keeping it machine-checkable is what makes automated changelogs and semver possible later.
+npx --no-install commitlint --edit "$1"

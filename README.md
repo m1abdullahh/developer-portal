@@ -54,6 +54,21 @@ That boundary, plus the no-cycles rule, is enforced by `npm run depcruise` in CI
 | `npm run format`     | Prettier write                               |
 | `npm run db:migrate` | Prisma migration (run inside `packages/db`)  |
 
+## Git hooks
+
+Installed automatically by `npm install` (Husky, via the `prepare` script).
+
+| Hook         | Runs                                           | Typical time |
+| ------------ | ---------------------------------------------- | ------------ |
+| `pre-commit` | Prettier + ESLint `--fix` on **staged files**  | < 2 s        |
+| `commit-msg` | Conventional Commits check                     | < 1 s        |
+| `pre-push`   | `typecheck` + `test` + `depcruise` (full repo) | ~10 s cached |
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) with a scope
+from the workspace list in `commitlint.config.js` — e.g. `feat(core): add spec migration`.
+
+Bypass with `--no-verify` when genuinely needed; CI runs the same checks regardless.
+
 ## Documentation
 
 Start with [docs/plan/00-architecture.md](docs/plan/00-architecture.md) — every other document

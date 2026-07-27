@@ -8,7 +8,7 @@ A version bump is expected to produce golden-file diffs — that diff _is_ the r
 
 ---
 
-## ⚠️ Two constraints that override "use the latest"
+## ⚠️ Three constraints that override "use the latest"
 
 ### 1. TypeScript is pinned to **6.0.3**, not 7.0.2
 
@@ -24,6 +24,30 @@ ships TS 7 support; tracked as a P4 item.
 `latest` is 4.24.15, but v4 predates the App Router and its Next 16 support is poor. Auth.js v5 is
 the App-Router-native line and is the de-facto standard despite the beta tag. Pinned **exactly**
 (no `^`) so a beta bump can never arrive unreviewed. Accepted risk, recorded here deliberately.
+
+### 3. `lint-staged` is pinned to **16.2.6**, not 17.2.0
+
+lint-staged 17.x declares `engines.node: ">=22.22.1"`. This project's runtime is Node 22.17.1
+(`.nvmrc`), so 17.x installs with an `EBADENGINE` warning and is not supported on the machines we
+actually build on. 16.2.6 requires `>=20.17` and is the newest release inside that window.
+
+Revisit together with the `.nvmrc` bump — moving Node is the prerequisite, not the workaround.
+
+---
+
+## Git hooks
+
+Managed by Husky. Installed automatically via the root `prepare` script; skipped in CI with
+`HUSKY=0` (CI runs the same checks directly).
+
+| Hook         | Runs                                         | Why there                                                       |
+| ------------ | -------------------------------------------- | --------------------------------------------------------------- |
+| `pre-commit` | `lint-staged` — Prettier then ESLint `--fix` | Staged files only, so it stays fast enough to never be bypassed |
+| `commit-msg` | `commitlint` (Conventional Commits)          | Keeps history machine-readable for changelog/semver later       |
+| `pre-push`   | `typecheck`, `test`, `depcruise`             | Full-repo correctness before anything leaves the machine        |
+
+`pre-push` deliberately excludes `next build` — that is CI's job, and adding ~40 s to every push
+is how teams start reaching for `--no-verify`.
 
 ---
 

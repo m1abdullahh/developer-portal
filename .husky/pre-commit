@@ -1,0 +1,3 @@
+# Formats and lints only the staged files — fast enough to run on every commit.
+# Full-repo checks live in pre-push and CI.
+npx lint-staged
