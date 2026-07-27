@@ -6,6 +6,11 @@
  */
 
 export * from './types.js';
+export * from './tree.js';
+export * from './frontmatter.js';
+export * from './helpers.js';
+export * from './renderer.js';
+export * from './registry.js';
 
 import type { ProjectSpec } from '@idp/core';
 import type { GenerateOptions, GenerateResult } from './types.js';
