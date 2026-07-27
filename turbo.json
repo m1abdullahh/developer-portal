@@ -2,11 +2,19 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
   "globalDependencies": ["tsconfig.base.json", "docs/VERSIONS.md"],
-  "globalEnv": ["NODE_ENV", "CI"],
+  // Turborepo 2 runs tasks in strict env mode by default: a task process only receives the
+  // environment variables declared here. Anything omitted is silently stripped, which is
+  // exactly how `prisma generate` came to fail in CI with "Cannot resolve environment
+  // variable: DATABASE_URL" while passing locally — locally packages/db/.env supplied it,
+  // and that file is gitignored.
+  "globalEnv": ["NODE_ENV", "CI", "DATABASE_URL"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      // *.tsbuildinfo is cached alongside dist deliberately. tsc writes it to the package
+      // root, so caching dist without it would restore outputs whose incremental state says
+      // "already built" — and the next build would emit nothing at all.
+      "outputs": ["dist/**", "*.tsbuildinfo", ".next/**", "!.next/cache/**"]
     },
     "dev": {
       "cache": false,

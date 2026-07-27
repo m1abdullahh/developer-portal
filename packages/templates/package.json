@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run --passWithNoTests",
-    "clean": "rimraf dist .tsbuildinfo"
+    "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
   "devDependencies": {
     "@types/node": "22.20.1"

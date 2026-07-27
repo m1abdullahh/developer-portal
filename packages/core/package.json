@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vitest run",
-    "clean": "rimraf dist .tsbuildinfo"
+    "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "zod": "4.4.3"

@@ -24,7 +24,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "clean": "rimraf dist src/generated .tsbuildinfo"
+    "clean": "rimraf dist src/generated tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@idp/core": "*",
