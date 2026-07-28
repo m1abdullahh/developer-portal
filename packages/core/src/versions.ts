@@ -49,6 +49,11 @@ export const GENERATED_VERSIONS = {
   'fastify-type-provider-zod': '7.0.0',
   'zod-to-json-schema': '3.25.2',
   pino: '10.3.1',
+  'pino-pretty': '13.1.3',
+  tsx: '4.23.1',
+  '@fastify/cors': '11.3.0',
+  '@fastify/rate-limit': '11.1.0',
+  '@fastify/jwt': '10.2.1',
 
   // ── API: data ─────────────────────────────────────────────────────────────
   prisma: '7.9.1',

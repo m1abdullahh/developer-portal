@@ -14,15 +14,18 @@ import type { Recipe } from '../types.js';
 import { nextjsAppRecipe } from './ui-nextjs-app.js';
 import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
 import { zustandRecipe } from './ui-zustand.js';
+import { nodeTsRecipe } from './api-node-ts.js';
 
 export * from './ui-nextjs-app.js';
 export * from './ui-tailwind-shadcn.js';
 export * from './ui-zustand.js';
+export * from './api-node-ts.js';
 
 export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
   tailwindShadcnRecipe,
   zustandRecipe,
+  nodeTsRecipe,
 ];
 
 export function createRegistry(extra: readonly Recipe[] = []): RecipeRegistry {
