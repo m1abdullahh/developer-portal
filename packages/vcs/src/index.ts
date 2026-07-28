@@ -6,3 +6,7 @@
  */
 
 export * from './types.js';
+
+export * from './filesystem-driver.js';
+export * from './github-driver.js';
+export * from './provision.js';
