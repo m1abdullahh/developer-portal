@@ -1,7 +1,13 @@
 /**
  * @idp/generator — the engine that turns a ProjectSpec into a file tree.
  *
- * P0 defines the contracts; the pipeline itself lands in P1.
+ * Entry point is `runPipeline`, which composes the seven in-memory stages
+ * (resolve → plan → render → merge → codemod → format → verify).
+ *
+ * Emission is deliberately NOT part of this package. Keeping the pipeline filesystem-free is
+ * what guarantees a failed generation leaves zero side effects — the caller hands the finished
+ * tree to a VcsDriver (doc 06 §1).
+ *
  * See docs/plan/05-generator-engine.md.
  */
 
@@ -11,25 +17,11 @@ export * from './frontmatter.js';
 export * from './helpers.js';
 export * from './renderer.js';
 export * from './registry.js';
-
-import type { ProjectSpec } from '@idp/core';
-import type { GenerateOptions, GenerateResult } from './types.js';
-
-/**
- * Runs the ten-stage pipeline (doc 00 §4).
- *
- * Not yet implemented — P1.1. The signature is fixed now so the portal, worker and CLI can be
- * built against it in parallel.
- */
-export function generate(
-  _spec: ProjectSpec,
-  _options: GenerateOptions = {},
-): Promise<GenerateResult> {
-  return Promise.reject(
-    new Error(
-      'generate() is not implemented yet — scheduled for P1.1 (docs/plan/09-execution-roadmap.md).',
-    ),
-  );
-}
-
 export * from './merge/index.js';
+export * from './codemod/index.js';
+export * from './stages/format.js';
+export * from './stages/verify.js';
+export * from './stages/codemod-stage.js';
+export * from './pipeline.js';
+export * from './emit.js';
+export * from './recipes.js';
