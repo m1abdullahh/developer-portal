@@ -35,11 +35,19 @@ export async function buildServer(): Promise<FastifyInstance> {
   // >>> idp:routes
   // <<< idp:routes
 
+  // ONE error handler for the whole app. Fastify permits only one per scope, so recipes that
+  // need special-case handling inject a branch into the marker below rather than calling
+  // setErrorHandler themselves — two handlers would mean the later registration silently
+  // discards the earlier one.
+  //
   // `error` is annotated explicitly: under exactOptionalPropertyTypes, Fastify 5's
   // setErrorHandler overloads do not infer it and it silently widens to `unknown`.
   app.setErrorHandler((error: FastifyError, request, reply) => {
     const status = error.statusCode ?? 500;
     request.log.error({ err: error, status }, 'request failed');
+
+    // >>> idp:error-cases
+    // <<< idp:error-cases
 
     // Stack traces and internal messages never cross the boundary in production — they leak
     // file paths, dependency versions and query shapes.

@@ -52,14 +52,17 @@ const JSONC_FILES =
   /(^|\/)(tsconfig[^/]*\.json|jsconfig\.json|\.eslintrc\.json|devcontainer\.json)$/;
 
 /**
- * Strips `//` and comments from JSONC, ignoring delimiters inside string literals.
+ * Strips `//` and block comments, ignoring delimiters inside string literals.
  *
- * A naive regex would corrupt any string containing `//` — a URL in a config value being the
- * obvious case.
+ * Used for two things: validating JSONC, and scanning source for real code patterns without
+ * matching the prose that documents them. A naive regex would corrupt any string containing
+ * `//` — a URL in a config value being the obvious case.
+ *
+ * `quotes` covers `"` for JSON and additionally `'` and backtick for TypeScript.
  */
-function stripJsonComments(input: string): string {
+function stripComments(input: string, quotes = `"`): string {
   let out = '';
-  let inString = false;
+  let stringDelimiter: string | null = null;
   let inLine = false;
   let inBlock = false;
 
@@ -83,19 +86,19 @@ function stripJsonComments(input: string): string {
       continue;
     }
 
-    if (inString) {
+    if (stringDelimiter !== null) {
       out += char;
       if (char === '\\') {
         out += input[i + 1] ?? '';
         i++;
-      } else if (char === '"') {
-        inString = false;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
       }
       continue;
     }
 
-    if (char === '"') {
-      inString = true;
+    if (quotes.includes(char)) {
+      stringDelimiter = char;
       out += char;
       continue;
     }
@@ -127,7 +130,7 @@ function checkParseable(tree: FileTree): Diagnostic[] {
     if (typeof file.content !== 'string' || file.content.trim() === '') continue;
 
     if (/\.json$/.test(file.path)) {
-      const source = JSONC_FILES.test(file.path) ? stripJsonComments(file.content) : file.content;
+      const source = JSONC_FILES.test(file.path) ? stripComments(file.content) : file.content;
       try {
         JSON.parse(source);
       } catch (cause) {
@@ -215,8 +218,13 @@ function checkCorsSanity(tree: FileTree): Diagnostic[] {
 
   for (const file of tree.filter((f) => /cors/i.test(f.path))) {
     if (typeof file.content !== 'string') continue;
-    const hasWildcard = /origin\s*:\s*['"`]\*['"`]/.test(file.content);
-    const hasCredentials = /credentials\s*:\s*true/.test(file.content);
+
+    // Comments stripped first. A template that DOCUMENTS why this combination is unsafe must
+    // not trip the check that enforces it — a linter firing on its own explanation is one
+    // people learn to switch off.
+    const code = stripComments(file.content, `"'\``);
+    const hasWildcard = /origin\s*:\s*['"`]\*['"`]/.test(code);
+    const hasCredentials = /credentials\s*:\s*true/.test(code);
 
     if (hasWildcard && hasCredentials) {
       out.push({

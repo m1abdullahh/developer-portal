@@ -17,6 +17,7 @@ import { zustandRecipe } from './ui-zustand.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
+import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 
 export * from './ui-nextjs-app.js';
 export * from './ui-tailwind-shadcn.js';
@@ -24,6 +25,7 @@ export * from './ui-zustand.js';
 export * from './api-node-ts.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
+export * from './api-middleware.js';
 
 export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
@@ -32,6 +34,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nodeTsRecipe,
   restRecipe,
   prismaRecipe,
+  ...MIDDLEWARE_RECIPES,
 ];
 
 export function createRegistry(extra: readonly Recipe[] = []): RecipeRegistry {
