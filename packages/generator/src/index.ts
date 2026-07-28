@@ -31,3 +31,5 @@ export function generate(
     ),
   );
 }
+
+export * from './merge/index.js';
