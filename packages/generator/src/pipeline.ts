@@ -14,6 +14,7 @@
 import { parseProjectSpec, type ProjectSpec } from '@idp/core';
 import { FileTree } from './tree.js';
 import { type RecipeRegistry } from './registry.js';
+import { applyPrefix, computeLayout, prefixFor } from './layout.js';
 import {
   EnvBuilder,
   MergeReportBuilder,
@@ -93,8 +94,11 @@ export async function runPipeline(
   // ── 1. resolve ─────────────────────────────────────────────────────────────
   const spec: ProjectSpec = await stage('resolve', () => parseProjectSpec(input));
 
+  const layout = computeLayout(spec);
+
   const ctx: RecipeContext = {
     spec,
+    paths: layout,
     clock: options.clock ?? defaultClock(),
     ids: options.ids ?? defaultIds(),
   };
@@ -105,32 +109,49 @@ export async function runPipeline(
 
   // ── 3. render ──────────────────────────────────────────────────────────────
   const tree = new FileTree();
-  const packageJson = new PackageJsonBuilder();
-  const env = new EnvBuilder();
   const readme = new ReadmeBuilder();
   const gitignore = new LineFileBuilder();
   const codemods: CodemodOp[] = [];
   const postInstall: string[] = [];
 
+  // package.json and .env.example are per-layer: a UI+API project has two of each, since they
+  // are two separate deployables with different dependencies and different configuration.
+  const packageJsonByPath = new Map<string, PackageJsonBuilder>();
+  const envByPath = new Map<string, EnvBuilder>();
+
+  const builderFor = <T>(map: Map<string, T>, key: string, make: () => T): T => {
+    const existing = map.get(key);
+    if (existing) return existing;
+    const created = make();
+    map.set(key, created);
+    return created;
+  };
+
   await stage('render', async () => {
     let index = 0;
     for (const recipe of recipes) {
-      emit({
-        type: 'progress',
-        current: ++index,
-        total: recipes.length,
-        label: recipe.id,
-      });
+      emit({ type: 'progress', current: ++index, total: recipes.length, label: recipe.id });
 
+      const prefix = prefixFor(layout, recipe.layer);
+
+      // Templates declare paths relative to their own layer, so they never need to know
+      // whether this project happens to be a monorepo.
       for (const file of (await recipe.files?.(ctx)) ?? []) {
-        tree.add(file);
+        tree.add({ ...file, path: applyPrefix(prefix, file.path) });
       }
 
       const delta = recipe.packageJson?.(ctx);
-      if (delta) packageJson.add(recipe.id, delta);
+      if (delta) {
+        builderFor(packageJsonByPath, `${prefix}package.json`, () => new PackageJsonBuilder()).add(
+          recipe.id,
+          delta,
+        );
+      }
 
       const vars = recipe.env?.(ctx);
-      if (vars?.length) env.add(recipe.id, vars);
+      if (vars?.length) {
+        builderFor(envByPath, `${prefix}.env.example`, () => new EnvBuilder()).add(recipe.id, vars);
+      }
 
       const ignore = recipe.gitignore?.(ctx);
       if (ignore?.length) gitignore.add(recipe.id, ignore);
@@ -138,28 +159,40 @@ export async function runPipeline(
       const section = recipe.readme?.(ctx);
       if (section) readme.add(recipe.id, section);
 
-      codemods.push(...(recipe.codemods?.(ctx) ?? []));
+      // Codemod targets are layer-relative too, for the same reason.
+      for (const op of recipe.codemods?.(ctx) ?? []) {
+        codemods.push({ ...op, file: applyPrefix(prefix, op.file) });
+      }
+
       postInstall.push(...(recipe.postInstall?.(ctx) ?? []));
     }
   });
 
   // ── 4. merge ───────────────────────────────────────────────────────────────
   await stage('merge', () => {
-    // package.json: the base recipe owns the file; features only add to it.
-    if (tree.has('package.json')) {
-      const base = JSON.parse(tree.readText('package.json')) as Record<string, unknown>;
-      const merged = packageJson.build(base, report);
-      tree.replace('package.json', `${JSON.stringify(merged, null, 2)}\n`);
+    for (const [path, builder] of [...packageJsonByPath].sort(([a], [b]) => a.localeCompare(b))) {
+      // The layer's base recipe owns the file; features only add to it.
+      if (!tree.has(path)) continue;
+      const base = JSON.parse(tree.readText(path)) as Record<string, unknown>;
+      tree.replace(path, `${JSON.stringify(builder.build(base, report), null, 2)}\n`);
     }
 
-    const envExample = env.buildEnvExample(report);
-    if (envExample) {
-      tree.set({ path: '.env.example', content: envExample, producedBy: '<merge>' });
+    for (const [path, builder] of [...envByPath].sort(([a], [b]) => a.localeCompare(b))) {
+      const envExample = builder.buildEnvExample(report);
+      if (envExample) tree.set({ path, content: envExample, producedBy: '<merge>' });
     }
 
-    const secrets = env.buildSecretsDoc(report);
-    if (secrets) {
-      tree.set({ path: 'SECRETS.md', content: secrets, producedBy: '<merge>' });
+    // One SECRETS.md at the root: a developer needs a single answer to "what must I set?",
+    // not one file per layer.
+    const allSecrets = [...envByPath.values()]
+      .map((b) => b.buildSecretsDoc(report))
+      .filter((doc): doc is string => doc !== null);
+    if (allSecrets.length > 0) {
+      tree.set({
+        path: 'SECRETS.md',
+        content: mergeSecretsDocs(allSecrets),
+        producedBy: '<merge>',
+      });
     }
 
     // Baseline ignore rules every project needs, before recipe contributions.
@@ -197,4 +230,30 @@ export async function runPipeline(
     durationMs: Date.now() - started,
     postInstall: [...new Set(postInstall)],
   };
+}
+
+/**
+ * Combines per-layer SECRETS.md documents into one root document.
+ *
+ * A UI+API project builds two EnvBuilders, so it produces two secret tables. Emitting both as
+ * separate files would leave a developer hunting for which one lists the variable they are
+ * missing; one table answers "what must I set?" in a single place.
+ */
+function mergeSecretsDocs(docs: readonly string[]): string {
+  if (docs.length === 1) return docs[0]!;
+
+  const lines = docs[0]!.split('\n');
+  const footerAt = lines.findIndex((line) => line.startsWith('>'));
+  const head = (footerAt === -1 ? lines : lines.slice(0, footerAt)).filter(
+    (line, i, all) => line.trim() !== '' || (i > 0 && all[i - 1]!.trim() !== ''),
+  );
+  const footer = footerAt === -1 ? [] : lines.slice(footerAt);
+
+  // Table rows begin with a backticked variable name; everything else is boilerplate we
+  // already have from the first document.
+  const extraRows = docs
+    .slice(1)
+    .flatMap((doc) => doc.split('\n').filter((line) => /^\|\s*`/.test(line)));
+
+  return [...head, ...extraRows, '', ...footer].join('\n');
 }

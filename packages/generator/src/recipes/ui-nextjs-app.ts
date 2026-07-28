@@ -21,6 +21,7 @@ export const NEXTJS_APP_RECIPE_ID = 'ui.framework.nextjs-app';
 export const nextjsAppRecipe: Recipe = {
   id: NEXTJS_APP_RECIPE_ID,
   phase: 'base',
+  layer: 'ui',
 
   appliesTo: (spec: ProjectSpec) => spec.ui?.framework === 'nextjs-app',
 

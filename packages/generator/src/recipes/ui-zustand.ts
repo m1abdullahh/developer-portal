@@ -19,6 +19,7 @@ export const ZUSTAND_RECIPE_ID = 'ui.state.zustand';
 export const zustandRecipe: Recipe = {
   id: ZUSTAND_RECIPE_ID,
   phase: 'feature',
+  layer: 'ui',
   requires: [NEXTJS_APP_RECIPE_ID],
 
   // React frameworks only. Selecting Nuxt maps this option to Pinia via a separate recipe —

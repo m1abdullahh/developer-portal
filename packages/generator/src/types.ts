@@ -6,6 +6,7 @@
  */
 
 import type { ProjectSpec } from '@idp/core';
+import type { RecipeLayer, RepoLayout } from './layout.js';
 
 // ── Virtual file tree ────────────────────────────────────────────────────────
 
@@ -73,11 +74,19 @@ export interface RecipeContext {
   clock: { now(): Date; year(): number };
   /** Injected id source so generated ids are stable under golden-file testing. */
   ids: { next(prefix: string): string };
+  /** Where each layer lives in the repo — see layout.ts. */
+  paths: RepoLayout;
 }
 
 export interface Recipe {
   id: string;
   phase: RecipePhase;
+  /**
+   * Which part of the project this recipe contributes to. Determines the path prefix its
+   * files, package.json and env vars receive when the project has both a UI and an API.
+   * Defaults to 'root'.
+   */
+  layer?: RecipeLayer;
   appliesTo(spec: ProjectSpec): boolean;
   /** Recipe ids that must run before this one. */
   requires?: readonly string[];

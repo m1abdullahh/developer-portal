@@ -19,6 +19,7 @@ export const TAILWIND_SHADCN_RECIPE_ID = 'ui.styling.tailwind-shadcn';
 export const tailwindShadcnRecipe: Recipe = {
   id: TAILWIND_SHADCN_RECIPE_ID,
   phase: 'feature',
+  layer: 'ui',
   // The framework recipe owns app/layout.tsx, which imports the globals.css this recipe emits.
   requires: [NEXTJS_APP_RECIPE_ID],
 

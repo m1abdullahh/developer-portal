@@ -26,3 +26,4 @@ export * from './pipeline.js';
 export * from './emit.js';
 export * from './recipes/index.js';
 export * from './template-loader.js';
+export * from './layout.js';
