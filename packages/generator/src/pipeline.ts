@@ -132,6 +132,9 @@ export async function runPipeline(
       const vars = recipe.env?.(ctx);
       if (vars?.length) env.add(recipe.id, vars);
 
+      const ignore = recipe.gitignore?.(ctx);
+      if (ignore?.length) gitignore.add(recipe.id, ignore);
+
       const section = recipe.readme?.(ctx);
       if (section) readme.add(recipe.id, section);
 

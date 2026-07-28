@@ -89,6 +89,8 @@ export interface Recipe {
   env?(ctx: RecipeContext): EnvVar[];
   codemods?(ctx: RecipeContext): CodemodOp[];
   readme?(ctx: RecipeContext): ReadmeSection;
+  /** Lines contributed to .gitignore. Order-sensitive and additive, so no recipe owns the file. */
+  gitignore?(ctx: RecipeContext): string[];
   postInstall?(ctx: RecipeContext): string[];
 }
 

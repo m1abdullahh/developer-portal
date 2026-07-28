@@ -24,4 +24,5 @@ export * from './stages/verify.js';
 export * from './stages/codemod-stage.js';
 export * from './pipeline.js';
 export * from './emit.js';
-export * from './recipes.js';
+export * from './recipes/index.js';
+export * from './template-loader.js';

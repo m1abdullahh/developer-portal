@@ -17,7 +17,7 @@ import { parseArgs } from 'node:util';
 import { safeParseProjectSpec } from '@idp/core';
 import { runPipeline, GenerationFailedError } from '../pipeline.js';
 import { emitTree } from '../emit.js';
-import { createRegistry } from '../recipes.js';
+import { createRegistry } from '../recipes/index.js';
 import type { Diagnostic, StageEvent } from '../types.js';
 
 const USAGE = `

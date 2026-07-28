@@ -1,0 +1,30 @@
+/**
+ * The built-in recipe set.
+ *
+ * P1.2 ships the UI half of the spine (Next.js + Tailwind/shadcn + Zustand). The API half
+ * (Fastify, REST/OpenAPI, Prisma, middleware) lands in P1.3, and DevOps in P1.4.
+ *
+ * A contract test asserts every wizard enum value maps to a registered recipe, so an option
+ * cannot reach the UI without an implementation behind it (doc 08 §5). Options still awaiting
+ * a recipe are listed explicitly there rather than silently passing.
+ */
+
+import { RecipeRegistry } from '../registry.js';
+import type { Recipe } from '../types.js';
+import { nextjsAppRecipe } from './ui-nextjs-app.js';
+import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
+import { zustandRecipe } from './ui-zustand.js';
+
+export * from './ui-nextjs-app.js';
+export * from './ui-tailwind-shadcn.js';
+export * from './ui-zustand.js';
+
+export const BUILT_IN_RECIPES: readonly Recipe[] = [
+  nextjsAppRecipe,
+  tailwindShadcnRecipe,
+  zustandRecipe,
+];
+
+export function createRegistry(extra: readonly Recipe[] = []): RecipeRegistry {
+  return new RecipeRegistry().registerAll([...BUILT_IN_RECIPES, ...extra]);
+}

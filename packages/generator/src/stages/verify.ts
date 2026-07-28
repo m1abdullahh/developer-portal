@@ -41,6 +41,84 @@ function checkUnrenderedTemplates(tree: FileTree): Diagnostic[] {
   return out;
 }
 
+/**
+ * Files that are JSON with Comments by specification, not by accident.
+ *
+ * TypeScript, ESLint and VS Code all accept comments in these, and the comments are worth
+ * keeping — a generated tsconfig that explains *why* a compiler option is set is far more
+ * useful than a bare one. Validating them with strict JSON.parse would reject valid files.
+ */
+const JSONC_FILES =
+  /(^|\/)(tsconfig[^/]*\.json|jsconfig\.json|\.eslintrc\.json|devcontainer\.json)$/;
+
+/**
+ * Strips `//` and comments from JSONC, ignoring delimiters inside string literals.
+ *
+ * A naive regex would corrupt any string containing `//` — a URL in a config value being the
+ * obvious case.
+ */
+function stripJsonComments(input: string): string {
+  let out = '';
+  let inString = false;
+  let inLine = false;
+  let inBlock = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i]!;
+    const next = input[i + 1];
+
+    if (inLine) {
+      if (char === '\n') {
+        inLine = false;
+        out += char;
+      }
+      continue;
+    }
+
+    if (inBlock) {
+      if (char === '*' && next === '/') {
+        inBlock = false;
+        i++;
+      }
+      continue;
+    }
+
+    if (inString) {
+      out += char;
+      if (char === '\\') {
+        out += input[i + 1] ?? '';
+        i++;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      out += char;
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      inLine = true;
+      i++;
+      continue;
+    }
+
+    if (char === '/' && next === '*') {
+      inBlock = true;
+      i++;
+      continue;
+    }
+
+    out += char;
+  }
+
+  // Trailing commas are legal in JSONC and common after a comment is removed.
+  return out.replace(/,(\s*[}\]])/g, '$1');
+}
+
 /** JSON and YAML that does not parse — a broken package.json breaks `npm install` immediately. */
 function checkParseable(tree: FileTree): Diagnostic[] {
   const out: Diagnostic[] = [];
@@ -49,8 +127,9 @@ function checkParseable(tree: FileTree): Diagnostic[] {
     if (typeof file.content !== 'string' || file.content.trim() === '') continue;
 
     if (/\.json$/.test(file.path)) {
+      const source = JSONC_FILES.test(file.path) ? stripJsonComments(file.content) : file.content;
       try {
-        JSON.parse(file.content);
+        JSON.parse(source);
       } catch (cause) {
         out.push({
           severity: 'error',

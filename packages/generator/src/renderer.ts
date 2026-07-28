@@ -23,12 +23,17 @@
 import ejs from 'ejs';
 import type { ProjectSpec } from '@idp/core';
 import { parseFrontmatter, type Frontmatter } from './frontmatter.js';
-import { h, type TemplateHelpers } from './helpers.js';
+import { h } from './helpers.js';
 import type { VirtualFile } from './types.js';
 
+/**
+ * Data made available to a template.
+ *
+ * `h` is deliberately absent: the renderer injects the helpers itself, so callers never supply
+ * them and cannot accidentally shadow them with a different implementation.
+ */
 export interface RenderContext {
   spec: ProjectSpec;
-  h: TemplateHelpers;
   /** Recipe-supplied values; keeps templates free of spec-shaped conditionals. */
   [key: string]: unknown;
 }

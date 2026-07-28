@@ -117,10 +117,28 @@ describe('idp validate', () => {
 });
 
 describe('idp list-recipes', () => {
-  it('reports honestly that no recipes are registered yet', async () => {
+  it('lists the registered recipes with their phase', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => {});
     await main(['list-recipes']);
-    expect(log.mock.calls.flat().join('\n')).toMatch(/No recipes are registered yet/);
+
+    const output = log.mock.calls.flat().join('\n');
+    expect(output).toContain('ui.framework.nextjs-app');
+    expect(output).toContain('base');
+    log.mockRestore();
+  });
+
+  it('shows only the recipes a given spec selects, in execution order', async () => {
+    const specFile = path.join(dir, 'spec.json');
+    await writeFile(specFile, JSON.stringify(spineSpec()));
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await main(['list-recipes', '--spec', specFile]);
+
+    const output = log.mock.calls.flat().join('\n');
+    // base phase must be listed before feature phase.
+    expect(output.indexOf('ui.framework.nextjs-app')).toBeLessThan(
+      output.indexOf('ui.state.zustand'),
+    );
     log.mockRestore();
   });
 });
