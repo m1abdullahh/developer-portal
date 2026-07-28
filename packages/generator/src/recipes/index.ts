@@ -20,6 +20,7 @@ import { prismaRecipe } from './api-prisma.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 import { containerNextRecipe, containerNodeApiRecipe } from './ops-container.js';
 import { helmRecipe } from './ops-helm.js';
+import { argocdRecipe, githubActionsRecipe } from './ops-gitops.js';
 
 export * from './ui-nextjs-app.js';
 export * from './ui-tailwind-shadcn.js';
@@ -30,6 +31,7 @@ export * from './api-prisma.js';
 export * from './api-middleware.js';
 export * from './ops-container.js';
 export * from './ops-helm.js';
+export * from './ops-gitops.js';
 
 export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
@@ -42,6 +44,8 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   containerNextRecipe,
   containerNodeApiRecipe,
   helmRecipe,
+  argocdRecipe,
+  githubActionsRecipe,
 ];
 
 export function createRegistry(extra: readonly Recipe[] = []): RecipeRegistry {
