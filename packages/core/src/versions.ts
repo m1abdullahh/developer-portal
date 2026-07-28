@@ -59,6 +59,9 @@ export const GENERATED_VERSIONS = {
   // ── API: data ─────────────────────────────────────────────────────────────
   prisma: '7.9.1',
   '@prisma/client': '7.9.1',
+  '@prisma/adapter-pg': '7.9.1',
+  pg: '8.22.0',
+  '@types/pg': '8.20.0',
 } as const satisfies Record<string, string>;
 
 export type GeneratedPackage = keyof typeof GENERATED_VERSIONS;
