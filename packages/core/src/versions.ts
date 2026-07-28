@@ -46,6 +46,7 @@ export const GENERATED_VERSIONS = {
   // ── API: Node runtime (P1 spine) ──────────────────────────────────────────
   fastify: '5.10.0',
   '@fastify/swagger': '9.8.1',
+  '@scalar/fastify-api-reference': '1.63.0',
   'fastify-type-provider-zod': '7.0.0',
   'zod-to-json-schema': '3.25.2',
   pino: '10.3.1',

@@ -140,6 +140,8 @@ export const MIDDLEWARE_PRIORITY = {
   rateLimit: 30,
   validation: 40,
   auth: 50,
+  /** Docs must register before routes so the OpenAPI generator can observe them. */
+  openapi: 60,
   routes: 90,
   errorHandler: 100,
 } as const;
