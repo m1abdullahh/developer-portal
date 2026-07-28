@@ -6,9 +6,15 @@ YAML or Docker configuration.
 
 **Target:** new project setup from 3–5 days to under 10 minutes.
 
-> **Status: Phase 0 complete.** The monorepo, the `ProjectSpec` contract and the architectural
-> guards are in place and verified. The generator pipeline, wizard and catalog land in Phase 1+.
-> See [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
+> **Status: the engine works end to end; the portal does not exist yet.** A `ProjectSpec` goes
+> in and a provisioned repository comes out — generation, merge, codemods, verification, the
+> job queue and repository provisioning are all built and tested. Generated projects are proven
+> to install, build and boot by `npm run smoke`.
+>
+> Still to come in Phase 1: the wizard and portal UI (docs 01–04), and the gate itself —
+> provisioning a real repository in the GitHub org, timed. Docker and Helm output is generated
+> and structurally validated but never executed locally; see doc 08 for that coverage gap.
+> Roadmap: [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start
 
@@ -45,14 +51,20 @@ That boundary, plus the no-cycles rule, is enforced by `npm run depcruise` in CI
 
 ## Commands
 
-| Command              | What it does                                 |
-| -------------------- | -------------------------------------------- |
-| `npm run build`      | Turborepo build across all workspaces        |
-| `npm run verify`     | Everything CI runs, in the same order        |
-| `npm run test`       | Vitest across all workspaces                 |
-| `npm run depcruise`  | Enforces the package boundaries in doc 00 §2 |
-| `npm run format`     | Prettier write                               |
-| `npm run db:migrate` | Prisma migration (run inside `packages/db`)  |
+| Command              | What it does                                                |
+| -------------------- | ----------------------------------------------------------- |
+| `npm run build`      | Turborepo build across all workspaces                       |
+| `npm run verify`     | Everything CI runs, in the same order                       |
+| `npm run test`       | Vitest across all workspaces                                |
+| `npm run smoke`      | Generates real projects and installs, builds and boots them |
+| `npm run depcruise`  | Enforces the package boundaries in doc 00 §2                |
+| `npm run format`     | Prettier write                                              |
+| `npm run db:migrate` | Prisma migration (run inside `packages/db`)                 |
+
+`smoke` is the slow one — about five minutes for three cases, since it runs a real `npm install`
+per layer. It needs `npm run build` first because it imports the built packages. Run one case
+with `npm run smoke -- --case spine`, or `-- --list` to see them all. Set `SMOKE_DATABASE_URL`
+to a reachable Postgres and it requires `/ready` to return 200 rather than merely answer.
 
 ## Git hooks
 

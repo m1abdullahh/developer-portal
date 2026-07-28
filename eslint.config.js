@@ -53,9 +53,11 @@ export default tseslint.config(
     },
   },
 
-  // The CLI is a console program.
+  // Console programs. Printing to stdout is these files' entire job, not a stray debug
+  // statement — `scripts/` holds the smoke harness and the version checker, both of which
+  // exist to report to a terminal.
   {
-    files: ['packages/*/src/cli/**/*.ts', 'apps/worker/src/**/*.ts'],
+    files: ['packages/*/src/cli/**/*.ts', 'apps/worker/src/**/*.ts', 'scripts/**/*.{mjs,js,ts}'],
     rules: { 'no-console': 'off' },
   },
 

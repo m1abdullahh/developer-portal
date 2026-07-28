@@ -57,6 +57,58 @@ jobs:
       - name: Architecture rules
         run: npm run depcruise
 
+  # Generates real projects and runs them: install, build, boot, HTTP request.
+  #
+  # Everything in `verify` is static — it proves we produced the files we meant to. Only this
+  # job catches a version pin that stopped resolving, a Next build that trips over generated
+  # types, or a plugin registered in the wrong order. It is the slowest thing we run and the
+  # only one that would have caught the Tailwind and Prisma failures found by hand in P1.
+  #
+  # Separate from `verify` so it runs in parallel and a smoke failure names itself, rather than
+  # appearing as the twentieth step of a long job.
+  smoke:
+    name: Smoke (generated projects)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smoke
+        ports: ["5432:5432"]
+        # Without a health check the job races the database and fails on first connection.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # With a reachable database the harness requires /ready to return 200, not merely to
+      # answer. That turns the readiness probe into a real assertion about Prisma connecting.
+      SMOKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/smoke
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The harness imports the built packages rather than the sources.
+      - name: Build
+        run: npm run build
+
+      - name: Smoke
+        run: npm run smoke
+
   # Verifies the version manifest still resolves. Runs separately so a registry outage
   # cannot block an otherwise-good PR.
   versions:
