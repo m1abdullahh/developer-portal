@@ -31,6 +31,16 @@ const PRETTIER_OPTIONS: prettier.Options = {
  */
 const FORMATTABLE = /\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css|scss|md|ya?ml|html)$/;
 
+/**
+ * Files Prettier must not touch even though their extension suggests it can.
+ *
+ * Helm chart templates are Go templates that only become YAML after `helm template` renders
+ * them — `{{- if .Values.x }}` is a YAML parse error until then. Formatting them fails, and
+ * more importantly Prettier would reflow the Go directives if it ever succeeded. They are
+ * validated in the generated repo's CI by `helm template` + kubeconform instead (doc 04 §7).
+ */
+const FORMAT_EXEMPT = /(^|\/)deploy\/templates\//;
+
 export interface FormatResult {
   formatted: number;
   diagnostics: Diagnostic[];
@@ -40,7 +50,7 @@ export async function formatTree(tree: FileTree): Promise<FormatResult> {
   const diagnostics: Diagnostic[] = [];
   let formatted = 0;
 
-  for (const file of tree.filter((f) => FORMATTABLE.test(f.path))) {
+  for (const file of tree.filter((f) => FORMATTABLE.test(f.path) && !FORMAT_EXEMPT.test(f.path))) {
     if (typeof file.content !== 'string') continue;
 
     try {

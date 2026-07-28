@@ -51,6 +51,9 @@ function checkUnrenderedTemplates(tree: FileTree): Diagnostic[] {
 const JSONC_FILES =
   /(^|\/)(tsconfig[^/]*\.json|jsconfig\.json|\.eslintrc\.json|devcontainer\.json)$/;
 
+/** Helm chart templates — Go templates, not YAML, until `helm template` renders them. */
+const HELM_TEMPLATE = /(^|\/)deploy\/templates\//;
+
 /**
  * Strips `//` and block comments, ignoring delimiters inside string literals.
  *
@@ -144,7 +147,10 @@ function checkParseable(tree: FileTree): Diagnostic[] {
       }
     }
 
-    if (/\.ya?ml$/.test(file.path)) {
+    // Helm chart templates are Go templates that only become YAML after `helm template`
+    // renders them — `{{- if .Values.x }}` is a parse error until then. They are validated
+    // instead by `helm template` + kubeconform in the generated repo's CI (doc 04 §7).
+    if (/\.ya?ml$/.test(file.path) && !HELM_TEMPLATE.test(file.path)) {
       try {
         parseYaml(file.content);
       } catch (cause) {
