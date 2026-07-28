@@ -6,25 +6,34 @@ YAML or Docker configuration.
 
 **Target:** new project setup from 3–5 days to under 10 minutes.
 
-> **Status: the engine works end to end; the portal does not exist yet.** A `ProjectSpec` goes
-> in and a provisioned repository comes out — generation, merge, codemods, verification, the
-> job queue and repository provisioning are all built and tested. Generated projects are proven
-> to install, build and boot by `npm run smoke`.
+> **Status: Phase 1 is feature-complete.** The wizard, the generator, the job queue, repository
+> provisioning and the catalog all work end to end — complete four steps, watch the stages
+> stream, and a repository appears with its catalog entry. Generated projects are proven to
+> install, build and boot by `npm run smoke`.
 >
-> Still to come in Phase 1: the wizard and portal UI (docs 01–04), and the gate itself —
-> provisioning a real repository in the GitHub org, timed. Docker and Helm output is generated
-> and structurally validated but never executed locally; see doc 08 for that coverage gap.
-> Roadmap: [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
+> **Not yet done:** the Phase 1 gate itself — provisioning a real repository in a GitHub
+> organisation, timed. That needs GitHub OAuth and App credentials; until they are set the
+> portal runs against the filesystem driver, which writes projects to a local directory. Docker
+> and Helm output is generated and structurally validated but never executed locally, and only
+> the spine options have generator recipes: the rest are shown disabled and labelled with the
+> phase they arrive in. Roadmap: [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start
 
 ```bash
 npm install
 cp packages/db/.env.example packages/db/.env
+cp apps/portal/.env.example apps/portal/.env.local   # then set AUTH_SECRET + AUTH_DEV_LOGIN
 npm run build
+npm --workspace @idp/db run db:deploy                # create the local SQLite database
 npm run verify        # format + lint + typecheck + test + architecture rules
 npm run dev           # portal on http://localhost:3000
 ```
+
+Without GitHub OAuth credentials, set `AUTH_DEV_LOGIN` for a local identity — it is refused when
+`NODE_ENV=production`, so a misconfigured deployment fails closed. Provisioning defaults to the
+filesystem driver and writes projects to `VCS_OUTPUT_DIR`; set `VCS_DRIVER=github` with a token to
+create real repositories.
 
 Requires Node 22.12+ (see `.nvmrc`). No Docker or Redis needed for local development.
 
