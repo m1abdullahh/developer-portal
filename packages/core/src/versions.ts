@@ -42,6 +42,10 @@ export const GENERATED_VERSIONS = {
   // ── UI: state ─────────────────────────────────────────────────────────────
   zustand: '5.0.14',
   '@tanstack/react-query': '5.101.4',
+  // Redux Toolkit peers react-redux ^9, and react-redux 9 peers React ^18||^19 — both satisfied
+  // by the pinned React 19.2.8. Verified against the registry on 2026-07-30.
+  '@reduxjs/toolkit': '2.12.0',
+  'react-redux': '9.3.0',
 
   // ── UI: forms ─────────────────────────────────────────────────────────────
   'react-hook-form': '7.83.0',

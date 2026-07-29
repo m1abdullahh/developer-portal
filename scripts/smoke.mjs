@@ -59,6 +59,30 @@ const CASES = {
       meta: { slug: 'smoke-api-no-db', deploymentTarget: 'cloudflare-vercel' },
     },
   },
+
+  /*
+   * One case per state library (P2.1).
+   *
+   * These are UI-only on purpose: the API half is identical across all four and installing
+   * Fastify and Prisma three more times would triple the runtime to re-prove what the `spine`
+   * case already covers. What differs — the provider wiring, the store, the dependency set — is
+   * entirely in the web layer.
+   */
+  'state-redux': {
+    description: 'Redux Toolkit store and typed hooks',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { state: 'redux-toolkit' }, meta: { slug: 'smoke-state-redux' } },
+  },
+  'state-query': {
+    description: 'TanStack Query plus its companion context store',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { state: 'react-query' }, meta: { slug: 'smoke-state-query' } },
+  },
+  'state-context': {
+    description: 'React Context with useReducer — no state dependency at all',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { state: 'context' }, meta: { slug: 'smoke-state-context' } },
+  },
 };
 
 // ── process helpers ──────────────────────────────────────────────────────────

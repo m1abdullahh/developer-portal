@@ -84,15 +84,16 @@ export const UI_STATES: Record<UiState, OptionMeta> = {
   zustand: { label: 'Zustand', description: 'Minimal store, no provider required.' },
   'redux-toolkit': {
     label: 'Redux Toolkit',
-    description: 'Structured stores with typed actions.',
-    comingIn: 'P2',
+    description: 'Structured slices with typed hooks. Store is per-request, not a singleton.',
   },
   'react-query': {
     label: 'TanStack Query',
-    description: 'Server-state cache; pairs with a small client store.',
-    comingIn: 'P2',
+    description: 'Server-state cache, with a small context store for client-only state.',
   },
-  context: { label: 'React Context', description: 'Built in, no dependency.', comingIn: 'P2' },
+  context: {
+    label: 'React Context',
+    description: 'useReducer with split state/dispatch contexts. No dependency.',
+  },
 };
 
 export const UI_MODULES: Record<UiModule, OptionMeta> = {
