@@ -117,14 +117,33 @@ export class GitHubDriver implements VcsDriver {
         // up with, so it is asserted rather than dropped — dropping it would silently create a
         // private repo where the user asked for an org-visible one.
         visibility: opts.visibility as 'private' | 'public',
-        // The repo must be empty for the Git Data push below: an auto-created README would
-        // give the branch a commit we would then have to reconcile against.
-        auto_init: false,
+        /*
+         * Initialised with a commit, deliberately.
+         *
+         * The Git Data API cannot operate on a repository that has no commits at all:
+         * `createTree` answers 409 "Git Repository is empty". So the repo needs a base commit
+         * before the real tree can be written. `pushTree` then force-updates the branch to a
+         * fresh root commit, which leaves the auto-generated commit unreferenced — the history
+         * still shows exactly one commit, which is the property we wanted from `auto_init: false`
+         * in the first place.
+         */
+        auto_init: true,
         has_issues: true,
         has_wiki: false,
         has_projects: false,
         delete_branch_on_merge: true,
       });
+
+      // GitHub names the initial branch from the org's default, which may not be what was asked
+      // for. Renaming keeps a single branch rather than leaving an orphaned `main` behind.
+      if (data.default_branch && data.default_branch !== opts.defaultBranch) {
+        await this.#octokit.repos.renameBranch({
+          owner: opts.org,
+          repo: data.name,
+          branch: data.default_branch,
+          new_name: opts.defaultBranch,
+        });
+      }
 
       return {
         org: opts.org,
@@ -177,20 +196,37 @@ export class GitHubDriver implements VcsDriver {
         owner,
         repo: name,
         message: commit.message,
-        tree: createdTree.sha,
-        // No parents: this is the initial commit of an empty repository.
+        // A root commit, with no parent — so the repository's history is exactly this one
+        // commit rather than ours stacked on top of GitHub's auto-generated README commit.
         parents: [],
+        tree: createdTree.sha,
         author: { name: commit.authorName, email: commit.authorEmail },
       });
 
-      // Nothing above is visible in the repository until this succeeds — which is what makes
-      // the whole push atomic from an observer's point of view.
-      await this.#octokit.git.createRef({
-        owner,
-        repo: name,
-        ref: `refs/heads/${repo.defaultBranch}`,
-        sha: createdCommit.sha,
-      });
+      // Nothing above is visible in the repository until the ref moves — which is what makes the
+      // whole push atomic from an observer's point of view.
+      //
+      // `force` because the new commit is unrelated to the auto-init commit the branch currently
+      // points at; without it GitHub rejects the update as a non-fast-forward.
+      try {
+        await this.#octokit.git.updateRef({
+          owner,
+          repo: name,
+          ref: `heads/${repo.defaultBranch}`,
+          sha: createdCommit.sha,
+          force: true,
+        });
+      } catch (cause) {
+        // The branch may legitimately not exist — a repository created outside this driver, or
+        // a rename that did not take. Creating it is the correct fallback, not a failure.
+        if (statusOf(cause) !== 422 && statusOf(cause) !== 404) throw cause;
+        await this.#octokit.git.createRef({
+          owner,
+          repo: name,
+          ref: `refs/heads/${repo.defaultBranch}`,
+          sha: createdCommit.sha,
+        });
+      }
 
       return createdCommit.sha;
     } catch (cause) {

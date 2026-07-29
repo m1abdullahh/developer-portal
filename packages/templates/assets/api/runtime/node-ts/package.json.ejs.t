@@ -16,6 +16,8 @@ to: package.json
     "start": "node dist/index.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+<%# --passWithNoTests: a scaffolded project has no tests yet and vitest exits 1 when it finds
+    none, so the first CI run would fail for the crime of being new. -%>
+    "test": "vitest run --passWithNoTests"
   }
 }

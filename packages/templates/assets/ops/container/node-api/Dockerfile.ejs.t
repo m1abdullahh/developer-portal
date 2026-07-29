@@ -13,13 +13,17 @@ to: Dockerfile
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev --ignore-scripts
+# `npm ci` needs a lockfile, and a freshly scaffolded repository has none until your first
+# `npm install`. This falls back to `npm install` on the scaffold commit and upgrades itself to a
+# reproducible `npm ci` build the moment you commit a lockfile. Worth doing early.
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev --ignore-scripts; else npm install --omit=dev --ignore-scripts; fi
 
 # ── builder ──────────────────────────────────────────────────────────────────
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts
+# Same lockfile fallback as the deps stage above.
+RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
 COPY . .
 <% if (spec.api.orm === 'prisma') { -%>
 # Prisma's client is generated code, not a published package — without this the image

@@ -77,8 +77,10 @@ module.exports = {
   options: {
     doNotFollow: { path: 'node_modules' },
     // `generated/` holds the Prisma client, which we do not author and which is internally
-    // circular by design. Cruising it produces only noise we cannot act on.
-    exclude: { path: '(^|/)(dist|\\.next|\\.turbo|coverage|generated)/' },
+    // circular by design. `.idp-output/` holds whole projects the portal provisioned at runtime —
+    // they are separate repositories that happen to sit on disk here, and cruising them measures
+    // someone else's architecture. Both produce only noise we cannot act on.
+    exclude: { path: '(^|/)(dist|\\.next|\\.turbo|coverage|generated|\\.idp-output)/' },
     tsPreCompilationDeps: true,
     // Maps @idp/* to source rather than dist/, so cross-package edges are actually visible
     // to the architectural rules above. See the comment in that file.

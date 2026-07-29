@@ -16,6 +16,11 @@ packages/templates/assets/
 # Golden snapshots are generated artefacts — formatting them would create false diffs.
 tests/golden/__snapshots__/
 
+# Projects the portal provisions with the filesystem driver. They are complete generated
+# repositories, already formatted by the pipeline's own format stage, and their Helm templates
+# are Go templates rather than YAML — the parser rejects `{{- if ... }}` outright.
+**/.idp-output/
+
 # Prisma owns its own formatting via `prisma format`.
 packages/db/prisma/schema.prisma
 packages/db/prisma/migrations/

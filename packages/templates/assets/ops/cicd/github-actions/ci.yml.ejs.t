@@ -30,9 +30,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: <%= spec.api ? 'apps/web/package-lock.json' : 'package-lock.json' %>
-      - run: npm ci
+      # A freshly scaffolded repository has no lockfile — one is produced by the first
+      # `npm install` and committed by you. Until then `npm ci` cannot run, and neither can
+      # setup-node's npm cache, which fails the job outright when its path does not resolve.
+      # This install prefers `npm ci` the moment a lockfile exists, so CI gets stricter on its
+      # own once you commit one.
+      - name: Install
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test --if-present
@@ -70,9 +75,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: <%= spec.ui ? 'apps/api/package-lock.json' : 'package-lock.json' %>
-      - run: npm ci
+      # See the note in the web job: no lockfile exists until your first `npm install`, so
+      # `npm ci` and setup-node's cache cannot be used on the scaffold commit.
+      - name: Install
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
 <% if (spec.api.orm === 'prisma') { -%>
       - run: npx prisma generate
       - name: Apply migrations

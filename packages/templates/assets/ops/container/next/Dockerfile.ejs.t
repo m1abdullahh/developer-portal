@@ -9,7 +9,11 @@ to: Dockerfile
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts
+# `npm ci` needs a lockfile, and a freshly scaffolded repository has none until your first
+# `npm install`. The glob above copies one only if it exists, so this falls back to `npm install`
+# on the scaffold commit and upgrades itself to a reproducible `npm ci` build the moment you
+# commit a lockfile. Committing one is worth doing early.
+RUN if [ -f package-lock.json ]; then npm ci --ignore-scripts; else npm install --ignore-scripts; fi
 
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app

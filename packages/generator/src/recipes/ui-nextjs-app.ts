@@ -36,6 +36,10 @@ export const nextjsAppRecipe: Recipe = {
       '@types/react',
       '@types/react-dom',
       'eslint',
+      // Required by the generated eslint.config.mjs. ESLint alone cannot lint TypeScript, and a
+      // flat config that imports a package the project does not declare fails at load.
+      '@eslint/js',
+      'typescript-eslint',
       'prettier',
       'vitest',
     ]),

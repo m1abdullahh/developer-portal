@@ -23,8 +23,40 @@ permissions:
 <% } -%>
 
 jobs:
+  # ── Preflight ────────────────────────────────────────────────────────────────
+  # A freshly scaffolded repository has no registry credentials and nothing to deploy to.
+  # Without this gate the very first push fails red on a missing secret, which reads as "the
+  # generated project is broken" rather than "you have not configured a deployment target yet".
+  #
+  # It is a separate job because the `secrets` context is available in `jobs.<id>.env` but not in
+  # a job-level `if` — publishing the answer as an output is what lets the real jobs gate on it.
+  # Fill in the values listed in SECRETS.md and the pipeline starts running on its own.
+  preflight:
+    name: Check deployment configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    env:
+<% if (spec.ops.cicd.registry === 'ecr') { -%>
+      DEPLOY_CONFIGURED: ${{ secrets.AWS_ROLE_ARN != '' && secrets.AWS_REGION != '' }}
+<% } else if (spec.ops.cicd.registry === 'ghcr') { -%>
+      DEPLOY_CONFIGURED: ${{ vars.IMAGE_REPO_WEB != '' || vars.IMAGE_REPO_API != '' }}
+<% } else { -%>
+      DEPLOY_CONFIGURED: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+<% } -%>
+    steps:
+      - id: check
+        run: |
+          echo "configured=${DEPLOY_CONFIGURED}" >> "$GITHUB_OUTPUT"
+          if [ "${DEPLOY_CONFIGURED}" != "true" ]; then
+            echo "::notice title=Deployment skipped::Set the secrets and variables listed in SECRETS.md to enable this pipeline."
+          fi
+
   build-and-push:
     name: Build and push
+    needs: preflight
+    if: needs.preflight.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     outputs:
@@ -92,7 +124,10 @@ jobs:
 <% if (spec.ops.k8s.enabled && spec.ops.gitops.enabled) { -%>
   gitops:
     name: Update GitOps tag
-    needs: build-and-push
+    needs: [preflight, build-and-push]
+    # Gated on the same answer as the build. Without this it would run with an empty image tag
+    # and commit `tag:` with no value into the chart.
+    if: needs.preflight.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

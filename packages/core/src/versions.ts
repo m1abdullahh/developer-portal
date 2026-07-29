@@ -18,6 +18,10 @@ export const GENERATED_VERSIONS = {
   zod: '4.4.3',
   vitest: '4.1.10',
   eslint: '10.8.0',
+  // ESLint 9 removed .eslintrc, so a generated project needs a flat config — and a flat config
+  // needs these two to say anything useful about TypeScript. Same versions this monorepo runs.
+  '@eslint/js': '10.0.1',
+  'typescript-eslint': '8.65.0',
   prettier: '3.9.6',
   '@types/node': '22.20.1',
 

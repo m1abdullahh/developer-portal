@@ -75,6 +75,11 @@ is how teams start reaching for `--no-verify`.
 | tsx                    | 4.23.1    |                                                             |
 | @types/node            | 22.20.1   | Tracks the Node **22** runtime, not the latest major (26.x) |
 
+Generated projects also receive `@eslint/js` **10.0.1** and `typescript-eslint` **8.65.0** — the
+same versions this monorepo runs. They are not optional extras: ESLint 9 removed `.eslintrc`, so
+a generated project needs a flat config, and a flat config cannot say anything about TypeScript
+without them. Omitting them made `eslint .` exit 2 on every provisioned repository.
+
 ## Portal
 
 | Package               | Version                   |

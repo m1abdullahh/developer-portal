@@ -36,7 +36,17 @@ export const nodeTsRecipe: Recipe = {
       'pino',
       ...(ctx.spec.api?.middleware.logging ? (['pino-pretty'] as const) : []),
     ]),
-    devDependencies: dependencyMap(['typescript', '@types/node', 'tsx', 'vitest', 'eslint']),
+    // @eslint/js and typescript-eslint are required by the generated eslint.config.mjs — ESLint
+    // alone cannot lint TypeScript, and a flat config importing an undeclared package fails to load.
+    devDependencies: dependencyMap([
+      'typescript',
+      '@types/node',
+      'tsx',
+      'vitest',
+      'eslint',
+      '@eslint/js',
+      'typescript-eslint',
+    ]),
   }),
 
   env: () => [

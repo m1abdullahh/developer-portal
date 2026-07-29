@@ -55,3 +55,8 @@ Thumbs.db
 # logs
 *.log
 npm-debug.log*
+
+# Projects the portal provisions with the filesystem driver (VCS_OUTPUT_DIR). These are whole
+# generated repositories written at runtime — committing them would put a copy of every
+# scaffolded project inside this one.
+.idp-output/

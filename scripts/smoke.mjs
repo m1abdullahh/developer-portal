@@ -346,13 +346,26 @@ async function smokeCase(name, workspaceRoot) {
       });
     }
 
-    await step(`${label}: typecheck`, async () => {
-      const { code, output } = await run('npm', ['run', 'typecheck'], {
-        cwd: dir,
-        timeout: 300_000,
+    /*
+     * Lint and test run here because the generated CI runs them.
+     *
+     * Their absence was a real hole: the harness proved the code compiled and booted while the
+     * generated projects shipped no `eslint.config.mjs` at all, so every provisioned repository's
+     * CI failed on `eslint .` before reaching a single line of source. The harness must exercise
+     * the same commands CI does, or it only proves the parts CI does not check.
+     */
+    for (const script of ['lint', 'typecheck', 'test']) {
+      if (!layer.scripts[script]) continue;
+
+      await step(`${label}: ${script}`, async () => {
+        const { code, output } = await run('npm', ['run', script], {
+          cwd: dir,
+          timeout: 300_000,
+          env: { DATABASE_URL: placeholderFor('DATABASE_URL') },
+        });
+        if (code !== 0) throw new Error(output);
       });
-      if (code !== 0) throw new Error(output);
-    });
+    }
 
     await step(`${label}: build`, async () => {
       const { code, output } = await run('npm', ['run', 'build'], {
