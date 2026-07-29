@@ -9,6 +9,7 @@ import { Step3Api } from './Step3Api';
 import { Step4DevOps } from './Step4DevOps';
 import { Review } from './Review';
 import { SummaryRail } from './SummaryRail';
+import { PreviewPane } from './PreviewPane';
 
 const STEPS: Array<{ step: WizardStep; title: string; subtitle: string }> = [
   { step: 1, title: 'Project', subtitle: 'Identity and destination' },
@@ -79,6 +80,11 @@ export function WizardShell({ canProvision }: { canProvision: boolean }) {
         {step === 3 ? <Step3Api /> : null}
         {step === 4 ? <Step4DevOps /> : null}
         {step === 5 ? <Review canProvision={canProvision} /> : null}
+
+        {/* Only on the DevOps step and the review. Those are where the generated infrastructure
+            is the subject; on steps 1–3 it would be a distraction that costs a full render pass
+            on every keystroke. */}
+        {step === 4 || step === 5 ? <PreviewPane /> : null}
 
         {step < 5 ? (
           <div className="flex items-center gap-3 border-t pt-6">

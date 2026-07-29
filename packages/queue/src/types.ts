@@ -77,12 +77,29 @@ export type JobEvent =
 
 export type Unsubscribe = () => void;
 
+/**
+ * Receives one event and its position in the job's event stream.
+ *
+ * The sequence is what makes resumption possible: an SSE transport writes it as the event `id:`,
+ * the browser sends it back as `Last-Event-ID` on reconnect, and the subscriber asks to continue
+ * from there rather than replaying everything.
+ */
+export type JobEventListener = (event: JobEvent, sequence: number) => void;
+
+export interface SubscribeOptions {
+  /**
+   * Replay only events *after* this sequence number. Omitted means replay the whole history,
+   * which is what a first-time subscriber wants.
+   */
+  after?: number | undefined;
+}
+
 export interface JobQueue {
   readonly kind: 'in-process' | 'bullmq';
 
   enqueue(job: ProvisionJob): Promise<JobId>;
   get(id: JobId): Promise<JobRecord | null>;
-  subscribe(id: JobId, cb: (event: JobEvent) => void): Unsubscribe;
+  subscribe(id: JobId, cb: JobEventListener, options?: SubscribeOptions): Unsubscribe;
   /** Returns false if the job has already produced external side effects. */
   cancel(id: JobId): Promise<boolean>;
   retry(id: JobId): Promise<JobId>;

@@ -19,12 +19,14 @@ import {
   isCancellable,
   isTerminal,
   type JobEvent,
+  type JobEventListener,
   type JobId,
   type JobQueue,
   type JobRecord,
   type JobStatus,
   type ProvisionJob,
   type StageRecord,
+  type SubscribeOptions,
   type Unsubscribe,
 } from './types.js';
 
@@ -72,7 +74,7 @@ interface Entry {
   record: JobRecord;
   job: ProvisionJob;
   controller: AbortController;
-  subscribers: Set<(event: JobEvent) => void>;
+  subscribers: Set<JobEventListener>;
   /** Replayed to late subscribers — an SSE client that reconnects must not miss stages. */
   history: JobEvent[];
   settled: Promise<void>;
@@ -147,17 +149,27 @@ export class InProcessDriver implements JobQueue {
     return entry ? structuredClone(entry.record) : null;
   }
 
-  subscribe(id: JobId, cb: (event: JobEvent) => void): Unsubscribe {
+  subscribe(id: JobId, cb: JobEventListener, options: SubscribeOptions = {}): Unsubscribe {
     const entry = this.#entries.get(id);
     if (!entry) return () => {};
 
-    // Replay first. A subscriber that attaches after the job started — which is every SSE
-    // client, since the HTTP round trip takes longer than reaching 'resolving' — would
-    // otherwise show an empty progress list until the next stage happens to fire.
-    //
-    // Guarded exactly like live delivery: a callback that throws mid-replay must not propagate
-    // out of subscribe() into the route handler that called it.
-    for (const event of entry.history) deliver(cb, event);
+    /*
+     * Replay first. A subscriber that attaches after the job started — which is every SSE client,
+     * since the HTTP round trip takes longer than reaching 'resolving' — would otherwise show an
+     * empty progress list until the next stage happens to fire.
+     *
+     * `after` narrows that to what the subscriber actually missed. A browser reconnecting with
+     * `Last-Event-ID: 6` has already rendered events 0–6, and re-sending them would duplicate
+     * every stage line it is displaying.
+     *
+     * An index into `history` IS the sequence number, so no separate counter can drift from it.
+     */
+    const from = options.after === undefined ? 0 : options.after + 1;
+    for (let sequence = Math.max(0, from); sequence < entry.history.length; sequence++) {
+      // Guarded exactly like live delivery: a callback that throws mid-replay must not propagate
+      // out of subscribe() into the route handler that called it.
+      deliver(cb, entry.history[sequence]!, sequence);
+    }
 
     if (isTerminal(entry.record.status)) return () => {};
 
@@ -316,8 +328,8 @@ export class InProcessDriver implements JobQueue {
   }
 
   #emit(entry: Entry, event: JobEvent): void {
-    entry.history.push(event);
-    for (const subscriber of entry.subscribers) deliver(subscriber, event);
+    const sequence = entry.history.push(event) - 1;
+    for (const subscriber of entry.subscribers) deliver(subscriber, event, sequence);
   }
 }
 
@@ -328,9 +340,9 @@ export class InProcessDriver implements JobQueue {
  * provision. That must not take down a job that is already half committed to GitHub: nobody
  * watching is not a failure.
  */
-function deliver(subscriber: (event: JobEvent) => void, event: JobEvent): void {
+function deliver(subscriber: JobEventListener, event: JobEvent, sequence: number): void {
   try {
-    subscriber(event);
+    subscriber(event, sequence);
   } catch {
     // Intentionally ignored — see above.
   }

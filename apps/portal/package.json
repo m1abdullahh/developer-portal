@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components lib",
+    "e2e": "playwright test",
     "test": "vitest run --passWithNoTests",
     "clean": "rimraf .next dist tsconfig.tsbuildinfo"
   },
@@ -27,6 +28,7 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "1.58.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.1",
     "@types/react": "19.2.17",

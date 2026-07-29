@@ -37,6 +37,30 @@ const STAGE_LABELS: Record<string, string> = {
 const TERMINAL = new Set(['completed', 'completed_with_warnings', 'failed']);
 
 /**
+ * One row per stage, showing its latest state.
+ *
+ * The job record keeps every transition — a `start` entry *and* a `done` entry for each stage —
+ * because that is the audit trail the catalog and any later debugging depend on. Rendering it
+ * literally listed every stage twice: a pending row directly above its completed twin.
+ *
+ * Collapsing here rather than discarding the transitions keeps the record intact and fixes the
+ * only place the distinction is noise.
+ */
+function collapseStages(stages: readonly Stage[]): Stage[] {
+  const byStage = new Map<string, Stage>();
+
+  for (const stage of stages) {
+    const existing = byStage.get(stage.stage);
+    // A `start` never overwrites a finished stage; ordering is not guaranteed across a reconnect.
+    if (existing && stage.status === 'start' && existing.status !== 'start') continue;
+    byStage.set(stage.stage, { ...existing, ...stage });
+  }
+
+  // Map preserves insertion order, so stages stay in the order they first ran.
+  return [...byStage.values()];
+}
+
+/**
  * Live provisioning progress.
  *
  * Consumes the SSE stream, which replays whatever already happened before this component
@@ -68,18 +92,29 @@ export function JobProgress({ jobId, initial }: { jobId: string; initial: JobVie
           case 'snapshot':
             return { ...current, ...event.record };
           case 'stage': {
-            // Replace the matching in-flight entry rather than appending, or a stage that
-            // starts and finishes shows up twice in the list.
+            /*
+             * Keyed by stage name, so applying an event twice changes nothing.
+             *
+             * The server renders the initial stage list, and the SSE stream then replays the
+             * events that produced it — so every stage arrives a second time. Appending on
+             * 'start' listed each one twice: a pending row and a completed row, one above the
+             * other. Each stage runs exactly once per job, so the name is a safe identity.
+             */
             const stages = [...current.stages];
-            const index = stages.findIndex((s) => s.stage === event.stage && s.status === 'start');
+            const index = stages.findIndex((s) => s.stage === event.stage);
             const next: Stage = {
               stage: event.stage,
               status: event.status,
               ...(event.ms === undefined ? {} : { ms: event.ms }),
             };
-            if (event.status === 'start') stages.push(next);
-            else if (index >= 0) stages[index] = next;
-            else stages.push(next);
+
+            if (index === -1) stages.push(next);
+            // A late 'start' must not undo a 'done' already displayed — replay order is not
+            // guaranteed to match arrival order once a reconnect is involved.
+            else if (!(event.status === 'start' && stages[index]!.status !== 'start')) {
+              stages[index] = next;
+            }
+
             return { ...current, stages };
           }
           case 'done':
@@ -112,6 +147,7 @@ export function JobProgress({ jobId, initial }: { jobId: string; initial: JobVie
   }, [jobId, initial.status]);
 
   const done = TERMINAL.has(job.status);
+  const stages = collapseStages(job.stages);
 
   return (
     <div className="space-y-6">
@@ -128,11 +164,11 @@ export function JobProgress({ jobId, initial }: { jobId: string; initial: JobVie
 
       <Card>
         <ol className="space-y-2">
-          {job.stages.length === 0 ? (
+          {stages.length === 0 ? (
             <li className="text-sm text-[hsl(var(--muted-foreground))]">Waiting to start…</li>
           ) : null}
-          {job.stages.map((stage, i) => (
-            <li key={`${stage.stage}-${i}`} className="flex items-center gap-3 text-sm">
+          {stages.map((stage) => (
+            <li key={stage.stage} className="flex items-center gap-3 text-sm">
               <StageMark status={stage.status} />
               <span className="flex-1">{STAGE_LABELS[stage.stage] ?? stage.stage}</span>
               {stage.ms !== undefined ? (

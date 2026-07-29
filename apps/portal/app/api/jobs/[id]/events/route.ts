@@ -13,8 +13,26 @@ import { getQueue, syncJob } from '../../../../../lib/provisioning';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Reads the resume point from the request.
+ *
+ * The browser sends `Last-Event-ID` automatically on an EventSource reconnect, carrying the `id:`
+ * of the last event it received. The query parameter is the manual equivalent, for clients that
+ * are not an EventSource. Anything unparseable means "start from the beginning" — replaying too
+ * much is recoverable, skipping events is not.
+ */
+function resumeFrom(request: Request): number | undefined {
+  const header = request.headers.get('last-event-id');
+  const query = new URL(request.url).searchParams.get('lastEventId');
+  const raw = header ?? query;
+  if (raw === null) return undefined;
+
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   try {
@@ -24,6 +42,7 @@ export async function GET(
   }
 
   const { id } = await context.params;
+  const after = resumeFrom(request);
   const queue = getQueue();
 
   const record = await queue.get(id);
@@ -45,10 +64,21 @@ export async function GET(
        */
       const cleanups: Array<() => void> = [];
 
-      const send = (event: JobEvent | { type: 'snapshot'; record: unknown }): void => {
+      /**
+       * Writes one SSE frame.
+       *
+       * The `id:` line is what makes reconnection cheap: the browser echoes the last one back as
+       * `Last-Event-ID`, and the queue then replays only what came after it. Without it, every
+       * reconnect re-sends the whole history and the progress list shows each stage twice.
+       */
+      const send = (
+        event: JobEvent | { type: 'snapshot'; record: unknown },
+        sequence?: number,
+      ): void => {
         if (closed) return;
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          const id = sequence === undefined ? '' : `id: ${sequence}\n`;
+          controller.enqueue(encoder.encode(`${id}data: ${JSON.stringify(event)}\n\n`));
         } catch {
           closed = true;
         }
@@ -66,19 +96,24 @@ export async function GET(
       };
 
       // The current state first, so the page renders complete rather than accumulating from
-      // whatever happens to arrive next.
-      send({ type: 'snapshot', record });
+      // whatever happens to arrive next. Skipped on a resume: the client already has it, and a
+      // second snapshot would reset a progress list it has been building.
+      if (after === undefined) send({ type: 'snapshot', record });
 
       cleanups.push(
-        queue.subscribe(id, (event) => {
-          send(event);
-          if (event.type === 'done' || event.type === 'error') {
-            void queue.get(id).then((final) => {
-              if (final) void syncJob(final);
-              finish();
-            });
-          }
-        }),
+        queue.subscribe(
+          id,
+          (event, sequence) => {
+            send(event, sequence);
+            if (event.type === 'done' || event.type === 'error') {
+              void queue.get(id).then((final) => {
+                if (final) void syncJob(final);
+                finish();
+              });
+            }
+          },
+          { after },
+        ),
       );
 
       // A job that was already finished before this request arrived gets its replay from

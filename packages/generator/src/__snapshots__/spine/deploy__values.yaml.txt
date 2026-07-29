@@ -1,0 +1,83 @@
+# Defaults for Acme Health Backend.
+# Environment overrides live in values-dev.yaml / values-staging.yaml / values-prod.yaml.
+
+nameOverride: ''
+fullnameOverride: ''
+
+image:
+  repository: acme-health-backend
+  # Overwritten by CI with the commit SHA on every deploy. Never `latest`: a mutable tag makes
+  # rollbacks guesswork and means two pods of the "same" version can run different code.
+  tag: ''
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  name: ''
+  annotations: {}
+    # IRSA: set to the role ARN to grant AWS permissions without static credentials.
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/acme-health-backend
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3001
+
+ingress:
+  enabled: true
+  className: nginx
+  host: acme-health-backend.example.com
+  tls:
+    enabled: true
+    secretName: acme-health-backend-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 8m
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    # No CPU limit on purpose: CPU is compressible, and a limit throttles the process at the
+    # quota rather than letting it use idle capacity. Memory IS limited, because exceeding
+    # memory is not throttled — it is an OOM kill.
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+  # Namespaces allowed to reach this service. Default-deny otherwise.
+  allowFromNamespaces:
+    - ingress-nginx
+
+env: []
+# Non-secret configuration, rendered into a ConfigMap.
+#  - name: LOG_LEVEL
+#    value: info
+
+secretRefs: []
+# Secrets are referenced, never templated. Values come from a real secret manager (External
+# Secrets, Sealed Secrets, SSM) — putting them here would commit them to git.
+#  - acme-health-backend-secrets
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10

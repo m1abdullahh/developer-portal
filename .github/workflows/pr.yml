@@ -57,6 +57,55 @@ jobs:
       - name: Architecture rules
         run: npm run depcruise
 
+  # Drives the wizard in a browser: five steps, a real provision, the catalog.
+  #
+  # Separate from `verify` because it needs a browser download and a running server, and separate
+  # from `smoke` because it tests the product rather than the output. It found two real bugs on
+  # its first run — a duplicated stage list and a hydration failure — neither visible to any
+  # test that does not actually click.
+  e2e:
+    name: E2E (wizard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Create the database
+        run: npm --workspace @idp/db run db:deploy
+        env:
+          DATABASE_URL: file:./dev.db
+
+      # Chromium only. The portal is an internal tool behind a single supported browser, and
+      # three engines would triple the runtime for coverage nobody has asked for.
+      - name: Install Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: apps/portal
+
+      - name: Run
+        run: npm run e2e
+        working-directory: apps/portal
+        env:
+          DATABASE_URL: file:../../packages/db/dev.db
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/portal/playwright-report/
+          retention-days: 7
+
   # Generates real projects and runs them: install, build, boot, HTTP request.
   #
   # Everything in `verify` is static — it proves we produced the files we meant to. Only this

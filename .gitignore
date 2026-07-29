@@ -60,3 +60,8 @@ npm-debug.log*
 # generated repositories written at runtime — committing them would put a copy of every
 # scaffolded project inside this one.
 .idp-output/
+
+# Playwright output. `test-results/` is already ignored above; these two are not.
+playwright-report/
+blob-report/
+.playwright/

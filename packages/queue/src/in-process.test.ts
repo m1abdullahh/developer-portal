@@ -317,6 +317,95 @@ describe('events', () => {
     expect(replayed.map((e) => e.type)).toEqual(['stage', 'stage', 'done']);
   });
 
+  describe('resume', () => {
+    /** Builds a finished job with a known number of events. */
+    async function finishedJob() {
+      const queue = new InProcessDriver({
+        handler: async (ctx) => {
+          ctx.stage('render', 'start');
+          ctx.stage('render', 'done');
+          ctx.log('info', 'halfway');
+          ctx.stage('verify', 'done');
+          return { repoUrl: 'https://github.com/acme/x', catalogId: 'cat' };
+        },
+      });
+      const id = await queue.enqueue(job());
+      await queue.waitFor(id);
+      return { queue, id };
+    }
+
+    it('numbers events by their position in the history', async () => {
+      const { queue, id } = await finishedJob();
+
+      const seen: number[] = [];
+      queue.subscribe(id, (_e, sequence) => seen.push(sequence));
+
+      expect(seen).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    // The reconnect case. A browser that already rendered events 0–2 must not be sent them
+    // again, or every stage it is displaying appears twice.
+    it('replays only what came after the given sequence', async () => {
+      const { queue, id } = await finishedJob();
+
+      const seen: Array<[number, string]> = [];
+      queue.subscribe(id, (event, sequence) => seen.push([sequence, event.type]), { after: 2 });
+
+      expect(seen.map(([sequence]) => sequence)).toEqual([3, 4]);
+    });
+
+    it('sends nothing when the subscriber is already up to date', async () => {
+      const { queue, id } = await finishedJob();
+
+      const seen: number[] = [];
+      queue.subscribe(id, (_e, sequence) => seen.push(sequence), { after: 99 });
+
+      expect(seen).toEqual([]);
+    });
+
+    it('replays everything when no resume point is given', async () => {
+      const { queue, id } = await finishedJob();
+
+      const seen: number[] = [];
+      queue.subscribe(id, (_e, sequence) => seen.push(sequence), {});
+
+      expect(seen).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    // Live events continue the same numbering, so a client can resume from one it received
+    // while the job was still running.
+    it('numbers live events continuously with replayed ones', async () => {
+      let gateResolve!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        gateResolve = resolve;
+      });
+      let markStarted!: () => void;
+      const started = new Promise<void>((resolve) => {
+        markStarted = resolve;
+      });
+
+      const queue = new InProcessDriver({
+        handler: async (ctx) => {
+          ctx.stage('render', 'start');
+          markStarted();
+          await gate;
+          ctx.stage('render', 'done');
+          return { repoUrl: 'https://github.com/acme/x', catalogId: 'cat' };
+        },
+      });
+
+      const id = await queue.enqueue(job());
+      await started;
+
+      const seen: number[] = [];
+      queue.subscribe(id, (_e, sequence) => seen.push(sequence));
+      gateResolve();
+      await queue.waitFor(id);
+
+      expect(seen).toEqual([0, 1, 2]);
+    });
+  });
+
   it('stops delivering after unsubscribe', async () => {
     const events: JobEvent[] = [];
     let gateResolve!: () => void;

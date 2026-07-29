@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden — 'api-only-go' > post-install instructions 1`] = `[]`;
+
+exports[`golden — 'spine' > post-install instructions 1`] = `
+[
+  "npm install",
+  "npm run dev",
+  "docker compose up -d postgres",
+  "npm run db:migrate",
+]
+`;
+
+exports[`golden — 'ui-only' > post-install instructions 1`] = `
+[
+  "npm install",
+  "npm run dev",
+]
+`;
