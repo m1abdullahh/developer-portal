@@ -83,6 +83,14 @@ const CASES = {
     fixture: 'uiOnlyVercelSpec',
     override: { ui: { state: 'context' }, meta: { slug: 'smoke-state-context' } },
   },
+
+  // The second framework (P2.2). Proves the framework contract holds in practice: every state
+  // and styling recipe applies here unchanged, against a completely different file layout.
+  'vite-react': {
+    description: 'Vite + React SPA — a second framework, no server rendering',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { framework: 'vite-react' }, meta: { slug: 'smoke-vite-react' } },
+  },
 };
 
 // ── process helpers ──────────────────────────────────────────────────────────
@@ -209,11 +217,19 @@ function indent(text) {
 /** Layers to install and build, in the order they appear in the generated repo. */
 function layersOf(files) {
   const manifests = files.filter((f) => /(^|^apps\/[^/]+\/)package\.json$/.test(f.path));
-  return manifests.map((f) => ({
-    dir: f.path.replace(/package\.json$/, ''),
-    scripts: JSON.parse(f.content).scripts ?? {},
-    kind: JSON.parse(f.content).dependencies?.next ? 'web' : 'api',
-  }));
+  return manifests.map((f) => {
+    const manifest = JSON.parse(f.content);
+    const deps = { ...manifest.dependencies, ...manifest.devDependencies };
+
+    return {
+      dir: f.path.replace(/package\.json$/, ''),
+      scripts: manifest.scripts ?? {},
+      // Keyed on the frameworks that produce a browser app, not on `next` alone. Checking only
+      // for `next` classified the Vite SPA as an API layer, so the harness tried to boot it and
+      // poll /health — a probe a static site has no way to answer.
+      kind: deps.next || deps.vite || deps.nuxt ? 'web' : 'api',
+    };
+  });
 }
 
 /**

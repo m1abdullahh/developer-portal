@@ -1,5 +1,5 @@
 ---
-to: stores/store.ts
+to: <%= framework.sourceRoot %>stores/store.ts
 ---
 import { configureStore } from '@reduxjs/toolkit';
 import { uiReducer } from './uiSlice';

@@ -59,10 +59,17 @@ describe('the provider root really does host {children}', () => {
       const root = files.find((f) => f.path.endsWith(contract.providerRoot));
 
       expect(root, `${contract.providerRoot} was not generated`).toBeDefined();
-      // After codemods the literal `{children}` sits inside the provider stack, so it still appears
-      // exactly once — more than once would mean a second anchor the codemod could have chosen.
-      const occurrences = String(root?.content).match(/\{children\}/g) ?? [];
-      expect(occurrences).toHaveLength(1);
+
+      // Comments are stripped first. A doc comment mentioning `{children}` — which the Vite
+      // Root component's own comment does — is prose, not a second anchor the codemod could
+      // have chosen. Counting it caught this test out rather than the code.
+      const code = String(root?.content)
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/[^\n]*/g, '');
+
+      // After codemods the literal sits inside the provider stack, so it still appears exactly
+      // once — more than once would mean an ambiguous anchor.
+      expect(code.match(/\{children\}/g) ?? []).toHaveLength(1);
     },
   );
 });

@@ -30,7 +30,9 @@ export const reduxToolkitRecipe: Recipe = {
     spec.ui?.state === 'redux-toolkit' && !isVueFramework(spec.ui.framework),
 
   files: (ctx) =>
-    loadTemplateDir(templatePath('ui', 'state', 'redux-toolkit'), ctx, REDUX_TOOLKIT_RECIPE_ID),
+    loadTemplateDir(templatePath('ui', 'state', 'redux-toolkit'), ctx, REDUX_TOOLKIT_RECIPE_ID, {
+      framework: frameworkContract(ctx.spec),
+    }),
 
   packageJson: (ctx) => {
     const resolved = resolveState(ctx.spec.ui!.framework, 'redux-toolkit');

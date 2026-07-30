@@ -1,5 +1,5 @@
 ---
-to: components/ui/card.tsx
+to: <%= framework.sourceRoot %>components/ui/card.tsx
 ---
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';

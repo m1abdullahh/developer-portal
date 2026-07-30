@@ -26,6 +26,23 @@ export interface FrameworkContract {
   providerRoot: string;
   /** File that imports the global stylesheet, for styling recipes that emit one. */
   stylesheetHost: string;
+  /**
+   * Where a styling recipe should write its global stylesheet.
+   *
+   * Separate from `stylesheetHost` — Next imports `app/globals.css` from the same file that hosts
+   * the providers, while Vite keeps `src/globals.css` beside an entry point that hosts nothing.
+   * Conflating the two would work for Next and silently misplace the file everywhere else.
+   */
+  stylesheetPath: string;
+  /**
+   * Prefix for shared source files — components, stores, lib.
+   *
+   * `''` under Next, whose App Router convention puts `components/` and `lib/` at the repository
+   * root, and `src/` under Vite. Templates shared between frameworks write
+   * `to: <%= framework.sourceRoot %>components/…` so one template serves both. Note the trailing
+   * slash is part of the value: concatenation, not a join, keeps the empty case clean.
+   */
+  sourceRoot: '' | `${string}/`;
 }
 
 /**

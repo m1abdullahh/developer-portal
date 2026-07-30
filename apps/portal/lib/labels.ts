@@ -57,8 +57,7 @@ export const UI_FRAMEWORKS: Record<UiFramework, OptionMeta> = {
   },
   'vite-react': {
     label: 'Vite + React',
-    description: 'A client-rendered SPA served by nginx.',
-    comingIn: 'P2',
+    description: 'A client-rendered SPA. No server rendering; builds to static assets.',
   },
   nuxt: {
     label: 'Nuxt 4',

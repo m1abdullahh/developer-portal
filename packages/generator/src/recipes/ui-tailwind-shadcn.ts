@@ -11,7 +11,7 @@ import { templatePath } from '@idp/templates';
 import { dependencyMap, isVueFramework, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
-import { requiresFramework } from '../framework-contract.js';
+import { frameworkContract, requiresFramework } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const TAILWIND_SHADCN_RECIPE_ID = 'ui.styling.tailwind-shadcn';
@@ -26,11 +26,14 @@ export const tailwindShadcnRecipe: Recipe = {
   appliesTo: (spec: ProjectSpec) =>
     spec.ui?.styling === 'tailwind-shadcn' && !isVueFramework(spec.ui.framework),
 
+  // The contract is passed to the templates so `globals.css` lands wherever the chosen framework
+  // expects it — `app/` under Next, `src/` under Vite — without this recipe naming either.
   files: (ctx) =>
     loadTemplateDir(
       templatePath('ui', 'styling', 'tailwind-shadcn'),
       ctx,
       TAILWIND_SHADCN_RECIPE_ID,
+      { framework: frameworkContract(ctx.spec) },
     ),
 
   packageJson: () => ({

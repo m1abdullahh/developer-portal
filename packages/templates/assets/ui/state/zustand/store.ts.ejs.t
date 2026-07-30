@@ -1,5 +1,5 @@
 ---
-to: stores/useUiStore.ts
+to: <%= framework.sourceRoot %>stores/useUiStore.ts
 ---
 'use client';
 

@@ -32,7 +32,7 @@ import { runPipeline } from './pipeline.js';
  * agree with whatever the code happens to do, which is the one thing a contract test must not do.
  */
 const IMPLEMENTED = {
-  frameworks: ['nextjs-app'],
+  frameworks: ['nextjs-app', 'vite-react'],
   stylings: ['tailwind-shadcn'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
   runtimes: ['node-ts'],

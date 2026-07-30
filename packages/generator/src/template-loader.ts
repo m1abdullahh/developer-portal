@@ -67,11 +67,20 @@ export async function loadTemplateDir(
   dir: string,
   context: RecipeContext,
   recipeId: string,
+  /**
+   * Extra values for the templates.
+   *
+   * How a recipe passes derived data — the framework contract, most usefully — without every
+   * template deriving it from the spec itself. A styling template writing
+   * `to: <%= framework.stylesheetPath %>` stays ignorant of which frameworks exist, which is the
+   * whole point of the contract.
+   */
+  extra: Record<string, unknown> = {},
 ): Promise<VirtualFile[]> {
   const out: VirtualFile[] = [];
   // Spread into an object literal: RecipeContext is an interface and so is not directly
   // assignable to RenderContext's index signature, but a literal is.
-  const renderContext = { ...context };
+  const renderContext = { ...context, ...extra };
 
   for (const filePath of await walk(dir)) {
     const relative = path.relative(dir, filePath).replace(/\\/g, '/');

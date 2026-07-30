@@ -1,5 +1,5 @@
 ---
-to: app/globals.css
+to: <%= framework.stylesheetPath %>
 ---
 @import 'tailwindcss';
 

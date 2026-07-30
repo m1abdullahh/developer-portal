@@ -1,5 +1,5 @@
 ---
-to: stores/uiSlice.ts
+to: <%= framework.sourceRoot %>stores/uiSlice.ts
 ---
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 

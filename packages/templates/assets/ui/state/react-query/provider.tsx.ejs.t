@@ -1,5 +1,5 @@
 ---
-to: components/providers/QueryProvider.tsx
+to: <%= framework.sourceRoot %>components/providers/QueryProvider.tsx
 ---
 'use client';
 

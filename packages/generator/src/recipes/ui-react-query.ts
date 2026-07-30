@@ -30,7 +30,9 @@ export const reactQueryRecipe: Recipe = {
     spec.ui?.state === 'react-query' && !isVueFramework(spec.ui.framework),
 
   files: (ctx) =>
-    loadTemplateDir(templatePath('ui', 'state', 'react-query'), ctx, REACT_QUERY_RECIPE_ID),
+    loadTemplateDir(templatePath('ui', 'state', 'react-query'), ctx, REACT_QUERY_RECIPE_ID, {
+      framework: frameworkContract(ctx.spec),
+    }),
 
   packageJson: (ctx) => {
     const resolved = resolveState(ctx.spec.ui!.framework, 'react-query');

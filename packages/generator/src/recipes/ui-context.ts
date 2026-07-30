@@ -27,7 +27,10 @@ export const contextRecipe: Recipe = {
   appliesTo: (spec: ProjectSpec) =>
     spec.ui?.state === 'context' && !isVueFramework(spec.ui.framework),
 
-  files: (ctx) => loadTemplateDir(templatePath('ui', 'state', 'context'), ctx, CONTEXT_RECIPE_ID),
+  files: (ctx) =>
+    loadTemplateDir(templatePath('ui', 'state', 'context'), ctx, CONTEXT_RECIPE_ID, {
+      framework: frameworkContract(ctx.spec),
+    }),
 
   codemods: (ctx) => [
     {

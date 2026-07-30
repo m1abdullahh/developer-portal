@@ -1,5 +1,5 @@
 ---
-to: stores/hooks.ts
+to: <%= framework.sourceRoot %>stores/hooks.ts
 ---
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { AppDispatch, AppStore, RootState } from './store';

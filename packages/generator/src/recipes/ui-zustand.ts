@@ -28,7 +28,10 @@ export const zustandRecipe: Recipe = {
   appliesTo: (spec: ProjectSpec) =>
     spec.ui?.state === 'zustand' && !isVueFramework(spec.ui.framework),
 
-  files: (ctx) => loadTemplateDir(templatePath('ui', 'state', 'zustand'), ctx, ZUSTAND_RECIPE_ID),
+  files: (ctx) =>
+    loadTemplateDir(templatePath('ui', 'state', 'zustand'), ctx, ZUSTAND_RECIPE_ID, {
+      framework: frameworkContract(ctx.spec),
+    }),
 
   packageJson: (ctx) => {
     // Package names come from the compatibility layer rather than being hardcoded, so the

@@ -1,5 +1,5 @@
 ---
-to: components/providers/StoreProvider.tsx
+to: <%= framework.sourceRoot %>components/providers/StoreProvider.tsx
 ---
 'use client';
 

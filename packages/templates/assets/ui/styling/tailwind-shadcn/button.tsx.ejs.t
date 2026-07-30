@@ -1,5 +1,5 @@
 ---
-to: components/ui/button.tsx
+to: <%= framework.sourceRoot %>components/ui/button.tsx
 ---
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';

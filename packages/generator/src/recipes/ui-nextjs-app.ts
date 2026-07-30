@@ -32,6 +32,9 @@ registerFrameworkContract('nextjs-app', {
   recipeId: NEXTJS_APP_RECIPE_ID,
   providerRoot: 'app/layout.tsx',
   stylesheetHost: 'app/layout.tsx',
+  stylesheetPath: 'app/globals.css',
+  // App Router keeps components/ and lib/ at the repository root.
+  sourceRoot: '',
 });
 
 export const nextjsAppRecipe: Recipe = {

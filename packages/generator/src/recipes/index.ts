@@ -12,6 +12,7 @@
 import { RecipeRegistry } from '../registry.js';
 import type { Recipe } from '../types.js';
 import { nextjsAppRecipe } from './ui-nextjs-app.js';
+import { viteReactRecipe } from './ui-vite-react.js';
 import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
 import { zustandRecipe } from './ui-zustand.js';
 import { reduxToolkitRecipe } from './ui-redux-toolkit.js';
@@ -26,6 +27,7 @@ import { helmRecipe } from './ops-helm.js';
 import { argocdRecipe, githubActionsRecipe } from './ops-gitops.js';
 
 export * from './ui-nextjs-app.js';
+export * from './ui-vite-react.js';
 export * from './ui-tailwind-shadcn.js';
 export * from './ui-zustand.js';
 export * from './ui-redux-toolkit.js';
@@ -41,6 +43,7 @@ export * from './ops-gitops.js';
 
 export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
+  viteReactRecipe,
   tailwindShadcnRecipe,
   zustandRecipe,
   // Exactly one of these four applies to any given spec — `appliesTo` keys on `ui.state` — so
