@@ -100,6 +100,25 @@ const CASES = {
     override: { ui: { styling: 'mui' }, meta: { slug: 'smoke-mui' } },
   },
 
+  // The first page module (P2.5). Written once, rendered under both routing shapes and any
+  // styling system — the payoff for the primitive API.
+  'module-auth-vite': {
+    description: 'Auth pages on Vite — declared routing, registered at the marker',
+    fixture: 'spineSpec',
+    override: {
+      ui: { framework: 'vite-react', modules: { authLayouts: true } },
+      meta: { slug: 'smoke-auth-vite' },
+    },
+  },
+  'module-auth-mui': {
+    description: 'Auth pages on Next with MUI — same module, different primitives',
+    fixture: 'spineSpec',
+    override: {
+      ui: { styling: 'mui', modules: { authLayouts: true } },
+      meta: { slug: 'smoke-auth-mui' },
+    },
+  },
+
   // The second framework (P2.2). Proves the framework contract holds in practice: every state
   // and styling recipe applies here unchanged, against a completely different file layout.
   'vite-react': {

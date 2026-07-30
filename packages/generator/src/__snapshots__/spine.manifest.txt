@@ -24,6 +24,9 @@ af22a8bf5ab9  apps/api/src/plugins/request-context.ts
 ce724be59caf  apps/api/src/server.ts
 208a829c20d3  apps/api/tsconfig.json
 470ebeadd75d  apps/web/.dockerignore
+4b70af78e72a  apps/web/app/(auth)/forgot-password/page.tsx
+4beaf3c87734  apps/web/app/(auth)/sign-in/page.tsx
+83c989353a7e  apps/web/app/(auth)/sign-up/page.tsx
 0b5617db8e74  apps/web/app/api/health/route.ts
 de2c840d0e8c  apps/web/app/globals.css
 fa2ff1438e22  apps/web/app/layout.tsx
@@ -66,5 +69,5 @@ dd40c3cf25fb  gitops/application-dev.yaml
 fa5e1df566f9  gitops/application-prod.yaml
 f436785b080b  gitops/application-staging.yaml
 b4a35ffbc19c  gitops/project.yaml
-bc045ec216d3  README.md
+cf3c6c7a768e  README.md
 893a5b37470a  SECRETS.md

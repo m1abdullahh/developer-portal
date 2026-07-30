@@ -20,6 +20,7 @@ import { zustandRecipe } from './ui-zustand.js';
 import { reduxToolkitRecipe } from './ui-redux-toolkit.js';
 import { reactQueryRecipe } from './ui-react-query.js';
 import { contextRecipe } from './ui-context.js';
+import { authLayoutsRecipe } from './ui-module-auth-layouts.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
@@ -41,6 +42,7 @@ export * from './ui-zustand.js';
 export * from './ui-redux-toolkit.js';
 export * from './ui-react-query.js';
 export * from './ui-context.js';
+export * from './ui-module-auth-layouts.js';
 export * from './api-node-ts.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
@@ -61,6 +63,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   reduxToolkitRecipe,
   reactQueryRecipe,
   contextRecipe,
+  authLayoutsRecipe,
   nodeTsRecipe,
   restRecipe,
   prismaRecipe,

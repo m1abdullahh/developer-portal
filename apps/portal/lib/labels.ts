@@ -100,8 +100,8 @@ export const UI_STATES: Record<UiState, OptionMeta> = {
 export const UI_MODULES: Record<UiModule, OptionMeta> = {
   authLayouts: {
     label: 'Authentication layouts',
-    description: 'Sign-in, sign-up and password-reset pages wired to your auth middleware.',
-    comingIn: 'P3',
+    description:
+      'Sign-in, sign-up and password-reset pages. Submit handlers are stubs for your API.',
   },
   userManagement: {
     label: 'User management',
