@@ -29,8 +29,14 @@ de2c840d0e8c  apps/web/app/globals.css
 fa2ff1438e22  apps/web/app/layout.tsx
 7af96e3e2993  apps/web/app/page.tsx
 6ced0c15ca88  apps/web/components/providers/StoreProvider.tsx
+2b63ca03075f  apps/web/components/ui/badge.tsx
 7e5986133881  apps/web/components/ui/button.tsx
 2612907f382a  apps/web/components/ui/card.tsx
+055125f0c99d  apps/web/components/ui/dialog.tsx
+0dc330f60c42  apps/web/components/ui/input.tsx
+9689fcde3224  apps/web/components/ui/select.tsx
+39e65d077ca8  apps/web/components/ui/table.tsx
+f525e881bbd4  apps/web/components/ui/toast.tsx
 8506b824af37  apps/web/Dockerfile
 8094f8da2148  apps/web/eslint.config.mjs
 a9e7128fa1c7  apps/web/lib/cn.ts

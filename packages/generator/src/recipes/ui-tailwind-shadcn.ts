@@ -12,9 +12,21 @@ import { dependencyMap, isVueFramework, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
 import { frameworkContract, requiresFramework } from '../framework-contract.js';
+import { PRIMITIVES, registerStylingContract } from '../styling-contract.js';
 import type { Recipe } from '../types.js';
 
 export const TAILWIND_SHADCN_RECIPE_ID = 'ui.styling.tailwind-shadcn';
+
+/**
+ * Declares the primitive set this system implements.
+ *
+ * The reference implementation: it covers all eight, so a page module written against this API
+ * has nothing framework- or library-specific to fall back on.
+ */
+registerStylingContract('tailwind-shadcn', {
+  recipeId: TAILWIND_SHADCN_RECIPE_ID,
+  provides: [...PRIMITIVES],
+});
 
 export const tailwindShadcnRecipe: Recipe = {
   id: TAILWIND_SHADCN_RECIPE_ID,
