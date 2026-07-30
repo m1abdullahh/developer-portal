@@ -74,8 +74,7 @@ export const UI_STYLINGS: Record<UiStyling, OptionMeta> = {
   mui: { label: 'MUI', description: 'Material Design components for React.', comingIn: 'P2' },
   'css-modules': {
     label: 'CSS Modules',
-    description: 'Scoped plain CSS, no framework.',
-    comingIn: 'P2',
+    description: 'Scoped plain CSS. No framework, no build plugin, no dependency.',
   },
 };
 

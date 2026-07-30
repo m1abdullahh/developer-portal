@@ -14,6 +14,7 @@ import type { Recipe } from '../types.js';
 import { nextjsAppRecipe } from './ui-nextjs-app.js';
 import { viteReactRecipe } from './ui-vite-react.js';
 import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
+import { cssModulesRecipe } from './ui-css-modules.js';
 import { zustandRecipe } from './ui-zustand.js';
 import { reduxToolkitRecipe } from './ui-redux-toolkit.js';
 import { reactQueryRecipe } from './ui-react-query.js';
@@ -33,6 +34,7 @@ import { argocdRecipe, githubActionsRecipe } from './ops-gitops.js';
 export * from './ui-nextjs-app.js';
 export * from './ui-vite-react.js';
 export * from './ui-tailwind-shadcn.js';
+export * from './ui-css-modules.js';
 export * from './ui-zustand.js';
 export * from './ui-redux-toolkit.js';
 export * from './ui-react-query.js';
@@ -49,6 +51,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
   viteReactRecipe,
   tailwindShadcnRecipe,
+  cssModulesRecipe,
   zustandRecipe,
   // Exactly one of these four applies to any given spec — `appliesTo` keys on `ui.state` — so
   // they never collide despite all four contributing the same StoreProvider path.

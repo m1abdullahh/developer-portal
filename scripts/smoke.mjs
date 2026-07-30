@@ -84,6 +84,14 @@ const CASES = {
     override: { ui: { state: 'context' }, meta: { slug: 'smoke-state-context' } },
   },
 
+  // The second styling system (P2.3). Zero dependencies, so a failure here is an API-design
+  // problem rather than a library-integration one.
+  'styling-css-modules': {
+    description: 'CSS Modules — the primitive API under a second styling system',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { styling: 'css-modules' }, meta: { slug: 'smoke-css-modules' } },
+  },
+
   // The second framework (P2.2). Proves the framework contract holds in practice: every state
   // and styling recipe applies here unchanged, against a completely different file layout.
   'vite-react': {

@@ -33,7 +33,7 @@ import { runPipeline } from './pipeline.js';
  */
 const IMPLEMENTED = {
   frameworks: ['nextjs-app', 'vite-react'],
-  stylings: ['tailwind-shadcn'],
+  stylings: ['tailwind-shadcn', 'css-modules'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
   runtimes: ['node-ts'],
   paradigms: ['rest'],
