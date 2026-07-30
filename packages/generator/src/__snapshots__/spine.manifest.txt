@@ -7,7 +7,7 @@ bcbfa1037f2b  apps/api/.env.example
 a92f4e4328f2  apps/api/eslint.config.mjs
 2802756523e0  apps/api/package.json
 f75f98208719  apps/api/prisma.config.ts
-3ff9869c2259  apps/api/prisma/schema.prisma
+ef728ca6a31e  apps/api/prisma/schema.prisma
 2bc5f2732b1a  apps/api/src/config/env.ts
 bbda9ff66e0c  apps/api/src/index.ts
 4cdeb72b4045  apps/api/src/lib/logger.ts

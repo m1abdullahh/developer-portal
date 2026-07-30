@@ -25,3 +25,8 @@ model Example {
 
   @@index([createdAt])
 }
+
+// Models contributed by page modules land between these markers. Anything you write outside them
+// is yours and is never rewritten; regenerating only replaces the region in between.
+// >>> idp:models
+// <<< idp:models
