@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/providers/StoreProvider.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import {
   createContext,
   useCallback,

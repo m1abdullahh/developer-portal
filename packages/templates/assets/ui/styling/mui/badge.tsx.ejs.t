@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/badge.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import Chip from '@mui/material/Chip';
 import type { ReactNode } from 'react';
 

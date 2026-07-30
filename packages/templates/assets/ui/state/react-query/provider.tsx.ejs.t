@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/providers/QueryProvider.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 

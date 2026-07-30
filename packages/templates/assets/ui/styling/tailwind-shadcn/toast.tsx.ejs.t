@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/toast.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 

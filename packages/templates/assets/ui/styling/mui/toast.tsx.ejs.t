@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/toast.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';

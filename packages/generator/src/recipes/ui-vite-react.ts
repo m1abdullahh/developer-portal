@@ -32,6 +32,8 @@ registerFrameworkContract('vite-react', {
   // A Vite SPA has no routing without a router, so pages must be registered in routes.tsx.
   routing: 'declared',
   routesDir: 'pages',
+  // No server components exist in a SPA — the directive would be an inert string literal.
+  clientDirective: false,
 });
 
 export const viteReactRecipe: Recipe = {

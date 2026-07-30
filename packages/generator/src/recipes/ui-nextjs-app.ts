@@ -38,6 +38,8 @@ registerFrameworkContract('nextjs-app', {
   // The App Router discovers any page.tsx under app/ — no registration step.
   routing: 'file-based',
   routesDir: 'app',
+  // Server components by default, so anything using hooks must opt in.
+  clientDirective: true,
 });
 
 export const nextjsAppRecipe: Recipe = {

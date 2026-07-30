@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/dialog.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import MuiDialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';

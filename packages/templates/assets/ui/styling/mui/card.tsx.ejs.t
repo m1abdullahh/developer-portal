@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/card.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import MuiCard from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import type { ReactNode } from 'react';

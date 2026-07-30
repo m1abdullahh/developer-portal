@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/input.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import TextField from '@mui/material/TextField';
 import type { InputHTMLAttributes } from 'react';
 

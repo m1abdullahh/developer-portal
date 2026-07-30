@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/theme.ts
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { createTheme } from '@mui/material/styles';
 
 /**

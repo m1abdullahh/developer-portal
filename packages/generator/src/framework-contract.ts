@@ -64,6 +64,18 @@ export interface FrameworkContract {
    * merely where the components live, and `routes.tsx` is what makes them reachable.
    */
   routesDir: string;
+  /**
+   * Whether generated components need a `'use client'` directive.
+   *
+   * Meaningful only where the framework renders on the server by default. Next needs it on any
+   * component using hooks or browser APIs; a Vite SPA has no server components at all, so the
+   * directive is a bare string literal at the top of a module — inert, and something Rollup
+   * warns about when it bundles.
+   *
+   * Emitting it unconditionally was the previous behaviour, which meant shared templates carried
+   * a Next-specific instruction into every framework.
+   */
+  clientDirective: boolean;
 }
 
 /**

@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/providers/StoreProvider.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { makeStore, type AppStore } from '@/stores/store';

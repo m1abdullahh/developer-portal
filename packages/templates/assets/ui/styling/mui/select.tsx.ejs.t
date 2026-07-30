@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/select.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 

@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/providers/ThemeProvider.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';

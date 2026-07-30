@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/button.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import MuiButton from '@mui/material/Button';
 import type { ButtonHTMLAttributes } from 'react';
 

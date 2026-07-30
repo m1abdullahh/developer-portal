@@ -1,8 +1,10 @@
 ---
 to: <%= framework.routing === 'file-based' ? framework.sourceRoot + 'app/(auth)/sign-in/page.tsx' : framework.sourceRoot + 'pages/SignIn.tsx' %>
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

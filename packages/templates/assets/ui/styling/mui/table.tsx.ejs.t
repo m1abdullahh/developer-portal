@@ -1,8 +1,10 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/table.tsx
 ---
+<% if (framework.clientDirective) { -%>
 'use client';
 
+<% } -%>
 import MuiTable from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
