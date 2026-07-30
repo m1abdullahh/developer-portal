@@ -28,7 +28,9 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
-  targetPort: <%= spec.ui && spec.api ? 3001 : spec.ui ? 3000 : 3001 %>
+  # The port the image actually listens on, declared by the container recipe that builds it.
+  # Guessing this from the spec shape was wrong for the nginx SPA image, which listens on 8080.
+  targetPort: <%= deployable.port %>
 
 ingress:
   enabled: <%= spec.ops.k8s.ingress !== 'none' %>
@@ -82,12 +84,15 @@ secretRefs: []
 # Secrets, Sealed Secrets, SSM) — putting them here would commit them to git.
 #  - <%= spec.meta.slug %>-secrets
 
+# Paths declared by the image, not assumed. A Fastify container answers /health and /ready, a
+# Next container answers /api/health, and the nginx SPA image answers /healthz — probing the
+# wrong one renders and applies cleanly, then never becomes Ready.
 probes:
   liveness:
-    path: /health
+    path: <%= deployable.livenessPath %>
     initialDelaySeconds: 10
     periodSeconds: 15
   readiness:
-    path: /ready
+    path: <%= deployable.readinessPath %>
     initialDelaySeconds: 5
     periodSeconds: 10

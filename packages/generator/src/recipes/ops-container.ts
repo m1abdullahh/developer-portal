@@ -14,6 +14,7 @@
 import { templatePath } from '@idp/templates';
 import type { ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
+import { registerDeployableContract } from '../deployable-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
 import { VITE_REACT_RECIPE_ID } from './ui-vite-react.js';
@@ -23,6 +24,21 @@ import type { Recipe } from '../types.js';
 const containersEnabled = (spec: ProjectSpec): boolean => spec.ops.container.strategy !== 'none';
 
 export const CONTAINER_NEXT_RECIPE_ID = 'ops.container.next';
+
+/*
+ * Next serves its probe from `app/api/health/route.ts`, so the path carries the `/api` prefix the
+ * App Router gives every route handler. Readiness points at the same endpoint: a Next server has
+ * no dependency to be un-ready for, and a second route returning an identical 200 would be
+ * ceremony rather than a signal.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_NEXT_RECIPE_ID,
+  port: 3000,
+  livenessPath: '/api/health',
+  readinessPath: '/api/health',
+  runAsUser: 65532,
+  writablePaths: ['/tmp'],
+});
 
 export const containerNextRecipe: Recipe = {
   id: CONTAINER_NEXT_RECIPE_ID,
@@ -56,6 +72,21 @@ export const containerNextRecipe: Recipe = {
 };
 
 export const CONTAINER_SPA_NGINX_RECIPE_ID = 'ops.container.spa-nginx';
+
+/*
+ * Every value here differs from the distroless images, which is the reason this contract exists.
+ * 8080 because UID 101 cannot bind a privileged port; `/healthz` because that is the location
+ * nginx.conf defines; `/var/cache/nginx` because nginx buffers request bodies and proxy responses
+ * to disk and the root filesystem is read-only.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_SPA_NGINX_RECIPE_ID,
+  port: 8080,
+  livenessPath: '/healthz',
+  readinessPath: '/healthz',
+  runAsUser: 101,
+  writablePaths: ['/tmp', '/var/cache/nginx'],
+});
 
 /**
  * Static SPA image for Vite.
@@ -107,6 +138,21 @@ export const containerSpaNginxRecipe: Recipe = {
 };
 
 export const CONTAINER_NODE_API_RECIPE_ID = 'ops.container.node-api';
+
+/*
+ * The only deployable whose two probe paths genuinely differ. `/ready` checks the database, so a
+ * Postgres outage removes the pod from the Service; `/health` does not, so the same outage does
+ * not also restart it. Pointing both at the same route would turn a dependency blip into a crash
+ * loop — the failure the split exists to prevent.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_NODE_API_RECIPE_ID,
+  port: 3001,
+  livenessPath: '/health',
+  readinessPath: '/ready',
+  runAsUser: 65532,
+  writablePaths: ['/tmp'],
+});
 
 export const containerNodeApiRecipe: Recipe = {
   id: CONTAINER_NODE_API_RECIPE_ID,

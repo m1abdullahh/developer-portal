@@ -12,6 +12,7 @@
 import { templatePath } from '@idp/templates';
 import { targetUsesKubernetes, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
+import { deployableContract } from '../deployable-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import type { Recipe } from '../types.js';
 
@@ -27,7 +28,12 @@ export const helmRecipe: Recipe = {
   appliesTo: (spec: ProjectSpec) =>
     spec.ops.k8s.enabled && targetUsesKubernetes(spec.meta.deploymentTarget),
 
-  files: (ctx) => loadTemplateDir(templatePath('ops', 'k8s', 'helm'), ctx, HELM_RECIPE_ID),
+  // `deployable` rather than a ternary inside values.yaml: the port and probe paths belong to
+  // whichever image this chart points at, and only the container recipes know them.
+  files: (ctx) =>
+    loadTemplateDir(templatePath('ops', 'k8s', 'helm'), ctx, HELM_RECIPE_ID, {
+      deployable: deployableContract(ctx.spec),
+    }),
 
   gitignore: () => ['deploy/charts/', 'deploy/*.tgz'],
 
@@ -54,8 +60,11 @@ export const helmRecipe: Recipe = {
       '| `image.tag` required | `latest` makes rollbacks guesswork; CI writes the commit SHA |',
       '| HPA scale-down stabilisation 300s | Prevents the remove-pod / load-rises / add-pod oscillation |',
       '',
-      'Probe paths (`/health`, `/ready`) match the API routes exactly. Changing one without the',
-      'other causes restart loops that look like application crashes.',
+      `Probe paths (\`${deployableContract(ctx.spec).livenessPath}\`, ` +
+        `\`${deployableContract(ctx.spec).readinessPath}\`) and the container port ` +
+        `(\`${deployableContract(ctx.spec).port}\`) come from the image this chart deploys, not`,
+      'from a default. Changing a route without changing the chart causes restart loops that look',
+      'like application crashes.',
     ].join('\n'),
   }),
 };

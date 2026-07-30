@@ -76,7 +76,9 @@ Postgres/Prisma + all 5 middleware + Docker + Helm + ArgoCD + GitHub Actions.
 - [ ] `values.yaml` + dev/staging/prod values
 - [ ] ArgoCD `Application` + `AppProject` manifests with HPA `ignoreDifferences`
 - [ ] `ci.yml` and `cd.yml` (build → push → chart-tag commit → Argo syncs)
-- [ ] hadolint / kubeconform / conftest / actionlint wired into our CI
+- [x] hadolint / kubeconform / conftest / actionlint wired into our CI — `scripts/ops-lint.mjs`,
+      run by the `Ops artifacts` job. Found three live mismatches between the charts and the images
+      they deploy; the fix was a deployable contract, mirroring the framework contract.
 
 ### P1.4 Orchestration (doc 06)
 

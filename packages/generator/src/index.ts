@@ -27,3 +27,8 @@ export * from './emit.js';
 export * from './recipes/index.js';
 export * from './template-loader.js';
 export * from './layout.js';
+// The contracts recipes declare about themselves. Exported because the ops-lint harness compares
+// what a chart renders against what the image promises, and needs the promise to compare with.
+export * from './framework-contract.js';
+export * from './styling-contract.js';
+export * from './deployable-contract.js';

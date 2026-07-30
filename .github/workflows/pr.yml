@@ -158,6 +158,72 @@ jobs:
       - name: Smoke
         run: npm run smoke
 
+  # Lints the ops artifacts: Dockerfiles, Helm charts, ArgoCD manifests, GitHub workflows.
+  #
+  # The gap this closes is the one the smoke harness cannot: nothing in a generated repository
+  # *executes* its chart or its workflows during a build, so a chart that renders invalid YAML or
+  # probes a path nobody serves passes every other job here and fails only against a real cluster.
+  # By then a repository has been provisioned and handed to a team.
+  #
+  # None of the four tools ship as npm packages, so they are installed here rather than through
+  # the lockfile. `--require-all` makes a failed install a red job — without it the script would
+  # skip the missing tool and report a green tick for a suite that checked almost nothing.
+  ops:
+    name: Ops artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The harness imports the built packages rather than the sources.
+      - name: Build
+        run: npm run build
+
+      # Preinstalled on ubuntu-latest, but pinned rather than assumed: a runner image change that
+      # drops it would otherwise turn every chart check into a silent skip.
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+
+      # Versions are pinned for the same reason the generated projects pin theirs — a linter that
+      # gains a rule overnight fails a PR that changed nothing.
+      - name: Install the ops linters
+        env:
+          HADOLINT_VERSION: v2.12.0
+          ACTIONLINT_VERSION: 1.7.7
+          KUBECONFORM_VERSION: v0.6.7
+          CONFTEST_VERSION: 0.56.0
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+
+          curl -fsSL -o "$HOME/.local/bin/hadolint" \
+            "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64"
+          chmod +x "$HOME/.local/bin/hadolint"
+
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" actionlint
+
+          curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" kubeconform
+
+          curl -fsSL "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" \
+            | tar -xz -C "$HOME/.local/bin" conftest
+
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Ops lint
+        run: npm run ops:lint
+
   # Verifies the version manifest still resolves. Runs separately so a registry outage
   # cannot block an otherwise-good PR.
   versions:

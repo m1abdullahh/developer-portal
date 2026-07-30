@@ -30,9 +30,12 @@ spec:
       serviceAccountName: {{ include "app.serviceAccountName" . }}
       securityContext:
         runAsNonRoot: true
-        runAsUser: 65532
-        runAsGroup: 65532
-        fsGroup: 65532
+        # The UID baked into this project's image. Distroless is 65532; the unprivileged nginx
+        # image is 101. A mismatch here is not a permission error at startup — the process runs
+        # as an ID that owns none of its own working directories, and fails on first write.
+        runAsUser: <%= deployable.runAsUser %>
+        runAsGroup: <%= deployable.runAsUser %>
+        fsGroup: <%= deployable.runAsUser %>
         seccompProfile:
           type: RuntimeDefault
       terminationGracePeriodSeconds: 30
@@ -80,13 +83,18 @@ spec:
             failureThreshold: 30
           resources: {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
-            # readOnlyRootFilesystem is on, so anything needing writes gets an explicit
-            # emptyDir. /tmp is the common one.
-            - name: tmp
-              mountPath: /tmp
+            # readOnlyRootFilesystem is on, so anything needing writes gets an explicit emptyDir.
+            # The list comes from the image: /tmp covers most of them, and nginx additionally
+            # buffers request bodies and proxy responses under /var/cache/nginx.
+<% for (const p of deployable.writablePaths) { -%>
+            - name: <%= h.kebab(p) %>
+              mountPath: <%= p %>
+<% } -%>
       volumes:
-        - name: tmp
+<% for (const p of deployable.writablePaths) { -%>
+        - name: <%= h.kebab(p) %>
           emptyDir: {}
+<% } -%>
       # Spread replicas across zones so a single zone failure cannot take every pod.
       topologySpreadConstraints:
         - maxSkew: 1

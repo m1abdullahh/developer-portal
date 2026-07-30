@@ -53,7 +53,7 @@ e6bcacded1f8  apps/web/tsconfig.json
 3eee245b5be4  deploy/Chart.yaml
 93f101b20208  deploy/templates/_helpers.tpl
 9176f4bbcc6a  deploy/templates/configmap.yaml
-13a303b49eb1  deploy/templates/deployment.yaml
+847c903e648f  deploy/templates/deployment.yaml
 1e0b32c8668f  deploy/templates/hpa.yaml
 6590f9fcb459  deploy/templates/ingress.yaml
 5569fb437b32  deploy/templates/networkpolicy.yaml
@@ -63,11 +63,11 @@ a9bef9686472  deploy/templates/pdb.yaml
 43682967c710  deploy/values-dev.yaml
 d89322819a05  deploy/values-prod.yaml
 7e141da42f1f  deploy/values-staging.yaml
-93d798917176  deploy/values.yaml
+8728c052d462  deploy/values.yaml
 cc1e6c2e2b3e  docker-compose.yml
 dd40c3cf25fb  gitops/application-dev.yaml
 fa5e1df566f9  gitops/application-prod.yaml
 f436785b080b  gitops/application-staging.yaml
 b4a35ffbc19c  gitops/project.yaml
-cf3c6c7a768e  README.md
+37ad2b601b26  README.md
 893a5b37470a  SECRETS.md

@@ -1,0 +1,18 @@
+# hadolint configuration, applied to the Dockerfiles this generator emits.
+#
+# The default failure threshold is `info`, which fails a build on advice like "consider combining
+# consecutive RUN instructions". Our multi-stage images separate those instructions on purpose —
+# the deps stage exists precisely so dependency layers cache independently of source changes — so
+# at the default setting the tool would report a design decision as a defect on every run.
+#
+# `warning` is the line where hadolint stops giving style advice and starts reporting things that
+# break or expose the image: unpinned base tags, apt lists left in a layer, missing pipefail,
+# running as root. Those fail. Everything below is still printed.
+failure-threshold: warning
+
+trustedRegistries:
+  - docker.io
+  # Distroless. The runner stage of both Node images.
+  - gcr.io
+  # Where CI pushes the images it builds, and where the chart pulls them from.
+  - ghcr.io
