@@ -22,7 +22,11 @@ import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
-import { containerNextRecipe, containerNodeApiRecipe } from './ops-container.js';
+import {
+  containerNextRecipe,
+  containerNodeApiRecipe,
+  containerSpaNginxRecipe,
+} from './ops-container.js';
 import { helmRecipe } from './ops-helm.js';
 import { argocdRecipe, githubActionsRecipe } from './ops-gitops.js';
 
@@ -56,6 +60,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   prismaRecipe,
   ...MIDDLEWARE_RECIPES,
   containerNextRecipe,
+  containerSpaNginxRecipe,
   containerNodeApiRecipe,
   helmRecipe,
   argocdRecipe,
