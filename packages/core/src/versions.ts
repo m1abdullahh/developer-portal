@@ -35,6 +35,9 @@ export const GENERATED_VERSIONS = {
   // ── UI: Vite + React (P2) ─────────────────────────────────────────────────
   vite: '8.1.5',
   '@vitejs/plugin-react': '6.0.4',
+  // A Vite SPA has no routing of its own, so page modules would have nowhere to register a route.
+  // v8 peers react >=19.2.7, satisfied by the pinned 19.2.8. Verified on 2026-07-30.
+  'react-router': '8.3.0',
 
   // ── UI: styling ───────────────────────────────────────────────────────────
   tailwindcss: '4.3.3',

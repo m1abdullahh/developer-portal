@@ -43,6 +43,27 @@ export interface FrameworkContract {
    * slash is part of the value: concatenation, not a join, keeps the empty case clean.
    */
   sourceRoot: '' | `${string}/`;
+  /**
+   * How a page module adds a route.
+   *
+   * `file-based` — dropping a file into the routes directory is enough; the framework discovers
+   * it. Next and Nuxt work this way.
+   *
+   * `declared` — the route must be registered in a routes table. A Vite SPA has no routing at
+   * all without a router, so a module that only emitted a component would produce a page nobody
+   * could navigate to.
+   *
+   * Page modules branch on this rather than on the framework name, so a third framework declares
+   * its answer instead of forcing every module to learn about it.
+   */
+  routing: 'file-based' | 'declared';
+  /**
+   * Where a page module writes its pages, relative to `sourceRoot`.
+   *
+   * For `file-based` frameworks this directory *is* the route table. For `declared` ones it is
+   * merely where the components live, and `routes.tsx` is what makes them reachable.
+   */
+  routesDir: string;
 }
 
 /**

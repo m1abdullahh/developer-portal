@@ -29,6 +29,9 @@ registerFrameworkContract('vite-react', {
   stylesheetHost: 'src/main.tsx',
   stylesheetPath: 'src/globals.css',
   sourceRoot: 'src/',
+  // A Vite SPA has no routing without a router, so pages must be registered in routes.tsx.
+  routing: 'declared',
+  routesDir: 'pages',
 });
 
 export const viteReactRecipe: Recipe = {
@@ -42,7 +45,7 @@ export const viteReactRecipe: Recipe = {
     loadTemplateDir(templatePath('ui', 'framework', 'vite-react'), ctx, VITE_REACT_RECIPE_ID),
 
   packageJson: () => ({
-    dependencies: dependencyMap(['react', 'react-dom', 'zod']),
+    dependencies: dependencyMap(['react', 'react-dom', 'react-router', 'zod']),
     devDependencies: dependencyMap([
       'vite',
       '@vitejs/plugin-react',

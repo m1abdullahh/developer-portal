@@ -35,6 +35,9 @@ registerFrameworkContract('nextjs-app', {
   stylesheetPath: 'app/globals.css',
   // App Router keeps components/ and lib/ at the repository root.
   sourceRoot: '',
+  // The App Router discovers any page.tsx under app/ — no registration step.
+  routing: 'file-based',
+  routesDir: 'app',
 });
 
 export const nextjsAppRecipe: Recipe = {
