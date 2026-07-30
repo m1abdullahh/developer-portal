@@ -1,7 +1,6 @@
 ---
 to: <%= framework.sourceRoot %>components/ui/select.tsx
 ---
-import type { SelectHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 export interface SelectOption {
@@ -10,24 +9,46 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'children'> {
+export interface SelectProps {
+  value?: string;
+  defaultValue?: string;
+  /**
+   * Receives the value, not a DOM event.
+   *
+   * Deliberate: extending `SelectHTMLAttributes<HTMLSelectElement>` would bake an element type
+   * into an API that every styling system has to satisfy, and not all of them render a real
+   * `<select>` — MUI uses a div. Passing the value is the shape that survives all three.
+   */
+  onValueChange?: (value: string) => void;
   options: readonly SelectOption[];
-  /** Rendered as a disabled, selected-by-default first option. */
   placeholder?: string;
   invalid?: boolean;
+  name?: string;
+  id?: string;
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
 }
 
 /**
  * A native `<select>`, deliberately.
  *
  * A custom listbox gives more styling control and costs keyboard support, screen-reader
- * behaviour, and the mobile picker — all of which the platform gets right for free. Swap it for a
+ * behaviour and the mobile picker — all of which the platform gets right for free. Swap it for a
  * headless library only once a design genuinely requires it.
  */
-export function Select({ className, options, placeholder, invalid, ...props }: SelectProps) {
+export function Select({
+  className,
+  options,
+  placeholder,
+  invalid,
+  onValueChange,
+  ...props
+}: SelectProps) {
   return (
     <select
       {...props}
+      onChange={(event) => onValueChange?.(event.target.value)}
       aria-invalid={invalid || undefined}
       className={cn(
         'w-full rounded-[var(--radius)] border bg-[hsl(var(--background))] px-3 py-2 text-sm',

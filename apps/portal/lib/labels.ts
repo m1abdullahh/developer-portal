@@ -71,7 +71,10 @@ export const UI_STYLINGS: Record<UiStyling, OptionMeta> = {
     label: 'Tailwind CSS + shadcn/ui',
     description: 'Utility CSS with a vendored, editable component set.',
   },
-  mui: { label: 'MUI', description: 'Material Design components for React.', comingIn: 'P2' },
+  mui: {
+    label: 'MUI',
+    description: 'Material Design components, wrapped to keep the shared component API.',
+  },
   'css-modules': {
     label: 'CSS Modules',
     description: 'Scoped plain CSS. No framework, no build plugin, no dependency.',

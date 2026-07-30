@@ -12,7 +12,7 @@ fa2ff1438e22  app/layout.tsx
 2612907f382a  components/ui/card.tsx
 055125f0c99d  components/ui/dialog.tsx
 0dc330f60c42  components/ui/input.tsx
-9689fcde3224  components/ui/select.tsx
+d089ac46186b  components/ui/select.tsx
 39e65d077ca8  components/ui/table.tsx
 f525e881bbd4  components/ui/toast.tsx
 8506b824af37  Dockerfile

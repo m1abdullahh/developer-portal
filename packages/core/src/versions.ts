@@ -38,6 +38,13 @@ export const GENERATED_VERSIONS = {
 
   // ── UI: styling ───────────────────────────────────────────────────────────
   tailwindcss: '4.3.3',
+  // MUI 9 peers React ^19 and both emotion packages, which are its default style engine.
+  // `@mui/material-pigment-css` is also listed as a peer but is optional — it is the alternative
+  // zero-runtime engine, and installing both would ship two styling systems in one project.
+  // Verified against the registry on 2026-07-30.
+  '@mui/material': '9.2.0',
+  '@emotion/react': '11.14.0',
+  '@emotion/styled': '11.14.1',
 
   // ── UI: state ─────────────────────────────────────────────────────────────
   zustand: '5.0.14',

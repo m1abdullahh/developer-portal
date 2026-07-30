@@ -32,8 +32,13 @@ describe('registration', () => {
     expect(registeredStylings()).toEqual([...withRecipes].sort());
   });
 
-  it('throws for a styling system with no recipe yet', () => {
-    const spec = { ...spineSpec(), ui: { ...spineSpec().ui!, styling: 'mui' as const } };
+  /**
+   * Every real styling option now has a recipe, so the guard is exercised with a value that
+   * cannot occur through the schema. Deleting the test instead would leave the failure path —
+   * the one that produces a clear error rather than an undefined lookup — unverified.
+   */
+  it('throws for a styling system with no registered contract', () => {
+    const spec = { ...spineSpec(), ui: { ...spineSpec().ui!, styling: 'vuetify' as never } };
     expect(() => stylingContract(spec)).toThrow(UnknownStylingError);
   });
 });

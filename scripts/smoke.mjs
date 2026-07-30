@@ -92,6 +92,14 @@ const CASES = {
     override: { ui: { styling: 'css-modules' }, meta: { slug: 'smoke-css-modules' } },
   },
 
+  // The third styling system (P2.3c). The one that stresses the primitive contract: MUI has its
+  // own opinions about every prop, so a badly designed API shows up as an unwrappable component.
+  'styling-mui': {
+    description: 'MUI — the primitive API wrapping a third-party component library',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { styling: 'mui' }, meta: { slug: 'smoke-mui' } },
+  },
+
   // The second framework (P2.2). Proves the framework contract holds in practice: every state
   // and styling recipe applies here unchanged, against a completely different file layout.
   'vite-react': {
