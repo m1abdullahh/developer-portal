@@ -11,7 +11,7 @@ import { dependencyMap, isVueFramework, resolveState, type ProjectSpec } from '@
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
 import { PROVIDER_PRIORITY } from '../codemod/providers.js';
-import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
+import { frameworkContract, requiresFramework } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const ZUSTAND_RECIPE_ID = 'ui.state.zustand';
@@ -20,7 +20,8 @@ export const zustandRecipe: Recipe = {
   id: ZUSTAND_RECIPE_ID,
   phase: 'feature',
   layer: 'ui',
-  requires: [NEXTJS_APP_RECIPE_ID],
+  // Whichever framework the spec chose — see framework-contract.ts.
+  requires: requiresFramework,
 
   // React frameworks only. Selecting Nuxt maps this option to Pinia via a separate recipe —
   // resolveState() is the single source of that mapping (doc 00 §5.1).
@@ -36,9 +37,9 @@ export const zustandRecipe: Recipe = {
     return { dependencies: dependencyMap(resolved.packages as never[]) };
   },
 
-  codemods: () => [
+  codemods: (ctx) => [
     {
-      file: 'app/layout.tsx',
+      file: frameworkContract(ctx.spec).providerRoot,
       kind: 'wrapProvider',
       args: {
         component: 'StoreProvider',

@@ -14,7 +14,7 @@ import { dependencyMap, isVueFramework, resolveState, type ProjectSpec } from '@
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
 import { PROVIDER_PRIORITY } from '../codemod/providers.js';
-import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
+import { frameworkContract, requiresFramework } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const REACT_QUERY_RECIPE_ID = 'ui.state.react-query';
@@ -23,7 +23,8 @@ export const reactQueryRecipe: Recipe = {
   id: REACT_QUERY_RECIPE_ID,
   phase: 'feature',
   layer: 'ui',
-  requires: [NEXTJS_APP_RECIPE_ID],
+  // Whichever framework the spec chose — see framework-contract.ts.
+  requires: requiresFramework,
 
   appliesTo: (spec: ProjectSpec) =>
     spec.ui?.state === 'react-query' && !isVueFramework(spec.ui.framework),
@@ -36,9 +37,9 @@ export const reactQueryRecipe: Recipe = {
     return { dependencies: dependencyMap(resolved.packages as never[]) };
   },
 
-  codemods: () => [
+  codemods: (ctx) => [
     {
-      file: 'app/layout.tsx',
+      file: frameworkContract(ctx.spec).providerRoot,
       kind: 'wrapProvider',
       args: {
         component: 'QueryProvider',
@@ -47,7 +48,7 @@ export const reactQueryRecipe: Recipe = {
       },
     },
     {
-      file: 'app/layout.tsx',
+      file: frameworkContract(ctx.spec).providerRoot,
       kind: 'wrapProvider',
       args: {
         component: 'StoreProvider',

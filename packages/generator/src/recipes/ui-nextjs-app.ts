@@ -14,9 +14,25 @@ import { templatePath } from '@idp/templates';
 import { dependencyMap, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
+import { registerFrameworkContract } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const NEXTJS_APP_RECIPE_ID = 'ui.framework.nextjs-app';
+
+/**
+ * Declares where recipes layered on top of this one should apply themselves.
+ *
+ * Registered at module load, beside the recipe it describes, so this framework's file layout stays
+ * knowledge this module owns rather than something every state and styling recipe has to know.
+ *
+ * The root layout satisfies the `{children}`-exactly-once requirement naturally, so it serves as
+ * both the provider root and the stylesheet host.
+ */
+registerFrameworkContract('nextjs-app', {
+  recipeId: NEXTJS_APP_RECIPE_ID,
+  providerRoot: 'app/layout.tsx',
+  stylesheetHost: 'app/layout.tsx',
+});
 
 export const nextjsAppRecipe: Recipe = {
   id: NEXTJS_APP_RECIPE_ID,

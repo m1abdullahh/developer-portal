@@ -88,8 +88,14 @@ export interface Recipe {
    */
   layer?: RecipeLayer;
   appliesTo(spec: ProjectSpec): boolean;
-  /** Recipe ids that must run before this one. */
-  requires?: readonly string[];
+  /**
+   * Recipe ids that must run before this one.
+   *
+   * A function when the answer depends on the spec: a state recipe requires *the* UI framework
+   * recipe, and which one that is only becomes known once a framework is chosen. Listing every
+   * framework id statically would fail validation, since exactly one of them applies.
+   */
+  requires?: readonly string[] | ((spec: ProjectSpec) => readonly string[]);
   /** Recipe ids that must not coexist with this one. */
   conflicts?: readonly string[];
 

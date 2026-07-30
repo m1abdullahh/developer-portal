@@ -11,7 +11,7 @@ import { templatePath } from '@idp/templates';
 import { dependencyMap, isVueFramework, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
-import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
+import { requiresFramework } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const TAILWIND_SHADCN_RECIPE_ID = 'ui.styling.tailwind-shadcn';
@@ -21,7 +21,7 @@ export const tailwindShadcnRecipe: Recipe = {
   phase: 'feature',
   layer: 'ui',
   // The framework recipe owns app/layout.tsx, which imports the globals.css this recipe emits.
-  requires: [NEXTJS_APP_RECIPE_ID],
+  requires: requiresFramework,
 
   appliesTo: (spec: ProjectSpec) =>
     spec.ui?.styling === 'tailwind-shadcn' && !isVueFramework(spec.ui.framework),

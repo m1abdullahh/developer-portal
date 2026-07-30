@@ -97,13 +97,20 @@ export class RecipeRegistry {
     const applicable = this.all().filter((r) => r.appliesTo(spec));
     const applicableIds = new Set(applicable.map((r) => r.id));
 
+    // Resolved once, here, and threaded through the checks and the sort. `requires` may be a
+    // function of the spec, and calling it repeatedly would let one recipe report different
+    // requirements to the validator than to the sort.
+    const requirements = new Map<string, readonly string[]>(
+      applicable.map((recipe) => [recipe.id, requirementsOf(recipe, spec)]),
+    );
+
     this.#assertNoConflicts(applicable, applicableIds);
-    this.#assertRequirementsPresent(applicable, applicableIds);
+    this.#assertRequirementsPresent(applicable, applicableIds, requirements);
 
     const ordered: Recipe[] = [];
     for (const phase of PHASE_ORDER) {
       const inPhase = applicable.filter((r) => r.phase === phase);
-      ordered.push(...topoSort(inPhase, applicableIds));
+      ordered.push(...topoSort(inPhase, applicableIds, requirements));
     }
     return ordered;
   }
@@ -124,9 +131,10 @@ export class RecipeRegistry {
   #assertRequirementsPresent(
     applicable: readonly Recipe[],
     applicableIds: ReadonlySet<string>,
+    requirements: ReadonlyMap<string, readonly string[]>,
   ): void {
     for (const recipe of applicable) {
-      for (const requiredId of recipe.requires ?? []) {
+      for (const requiredId of requirements.get(recipe.id) ?? []) {
         if (!applicableIds.has(requiredId)) {
           throw new MissingRequirementError(recipe.id, requiredId);
         }
@@ -136,13 +144,34 @@ export class RecipeRegistry {
 }
 
 /**
+ * A recipe's requirements for one spec.
+ *
+ * Exported because both the validator and the sort need the same answer, and because a recipe
+ * whose `requires` is a function must not be asked twice — see the comment in `plan()`.
+ */
+export function requirementsOf(recipe: Recipe, spec: ProjectSpec): readonly string[] {
+  return typeof recipe.requires === 'function' ? recipe.requires(spec) : (recipe.requires ?? []);
+}
+
+/**
  * Kahn's algorithm with a lexicographic tie-break.
  *
  * Only requirements *within the same phase* constrain order here; cross-phase requirements are
  * already satisfied by phase sequencing, so they are ignored rather than treated as missing.
  */
-export function topoSort(recipes: readonly Recipe[], applicableIds: ReadonlySet<string>): Recipe[] {
+export function topoSort(
+  recipes: readonly Recipe[],
+  applicableIds: ReadonlySet<string>,
+  /**
+   * Pre-resolved requirements. Optional so existing callers and tests that pass static
+   * `requires` arrays keep working; `plan()` always supplies it.
+   */
+  requirements?: ReadonlyMap<string, readonly string[]>,
+): Recipe[] {
   const inPhase = new Map(recipes.map((r) => [r.id, r]));
+  const requiredIdsFor = (recipe: Recipe): readonly string[] =>
+    requirements?.get(recipe.id) ??
+    (typeof recipe.requires === 'function' ? [] : (recipe.requires ?? []));
 
   const dependencies = new Map<string, Set<string>>();
   const dependents = new Map<string, Set<string>>();
@@ -153,7 +182,7 @@ export function topoSort(recipes: readonly Recipe[], applicableIds: ReadonlySet<
   }
 
   for (const recipe of recipes) {
-    for (const requiredId of recipe.requires ?? []) {
+    for (const requiredId of requiredIdsFor(recipe)) {
       // Satisfied by an earlier phase, or by a recipe that legitimately does not apply.
       if (!inPhase.has(requiredId)) continue;
       if (!applicableIds.has(requiredId)) continue;
