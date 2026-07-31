@@ -80,6 +80,13 @@ export const GENERATED_VERSIONS = {
   '@prisma/adapter-pg': '7.9.1',
   pg: '8.22.0',
   '@types/pg': '8.20.0',
+
+  // ── API: billing (P2 stripeBilling) ───────────────────────────────────────
+  // The SDK is not optional for this module: verifying a webhook signature means recomputing an
+  // HMAC over the raw body against a tolerance window, and `stripe.webhooks.constructEvent` is
+  // the implementation everyone should be using rather than a hand-rolled one.
+  // Verified on 2026-07-31.
+  stripe: '22.4.0',
 } as const satisfies Record<string, string>;
 
 export type GeneratedPackage = keyof typeof GENERATED_VERSIONS;

@@ -111,8 +111,9 @@ export const UI_MODULES: Record<UiModule, OptionMeta> = {
   },
   stripeBilling: {
     label: 'Stripe billing',
-    description: 'Checkout, subscription state and a webhook endpoint.',
-    comingIn: 'P3',
+    description:
+      'A /billing page plus Checkout and Customer Portal redirects, and a signature-verified ' +
+      'webhook with idempotency. No card fields — Stripe hosts those.',
   },
   settingsRbac: {
     label: 'Settings & RBAC',

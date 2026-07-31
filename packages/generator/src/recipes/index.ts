@@ -23,12 +23,14 @@ import { contextRecipe } from './ui-context.js';
 import { authLayoutsRecipe } from './ui-module-auth-layouts.js';
 import { uiUserManagementRecipe } from './ui-module-user-management.js';
 import { uiSettingsRbacRecipe } from './ui-module-settings-rbac.js';
+import { uiStripeBillingRecipe } from './ui-module-stripe-billing.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
 import { apiPermissionsRecipe, uiPermissionsRecipe } from './policy-permissions.js';
 import { apiUserManagementRecipe } from './api-module-user-management.js';
 import { apiSettingsRbacRecipe } from './api-module-settings-rbac.js';
+import { apiStripeBillingRecipe } from './api-module-stripe-billing.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 import {
   containerNextRecipe,
@@ -50,12 +52,14 @@ export * from './ui-context.js';
 export * from './ui-module-auth-layouts.js';
 export * from './ui-module-user-management.js';
 export * from './ui-module-settings-rbac.js';
+export * from './ui-module-stripe-billing.js';
 export * from './api-node-ts.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
 export * from './policy-permissions.js';
 export * from './api-module-user-management.js';
 export * from './api-module-settings-rbac.js';
+export * from './api-module-stripe-billing.js';
 export * from './api-middleware.js';
 export * from './ops-container.js';
 export * from './ops-helm.js';
@@ -78,6 +82,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   // resolution order comes from `requires` and the phase, not from this array.
   uiUserManagementRecipe,
   uiSettingsRbacRecipe,
+  uiStripeBillingRecipe,
   nodeTsRecipe,
   restRecipe,
   prismaRecipe,
@@ -86,6 +91,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   uiPermissionsRecipe,
   apiUserManagementRecipe,
   apiSettingsRbacRecipe,
+  apiStripeBillingRecipe,
   ...MIDDLEWARE_RECIPES,
   containerNextRecipe,
   containerSpaNginxRecipe,

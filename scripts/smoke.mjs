@@ -166,6 +166,25 @@ const CASES = {
       meta: { slug: 'smoke-module-settings' },
     },
   },
+
+  /*
+   * stripeBilling (P2.5d) — the only module with a third-party SDK behind it.
+   *
+   * Worth its own case for two reasons nothing static covers. The Stripe client is constructed at
+   * module load with a pinned `apiVersion` whose type is a literal union tied to the installed
+   * SDK, so a version drift is a compile error only a real `npm install` can surface. And the
+   * webhook registers an encapsulated raw-body parser — if that scope leaked, every other route
+   * in the service would receive a Buffer instead of a parsed body, which boots fine and fails on
+   * the first request.
+   */
+  'module-billing': {
+    description: 'stripeBilling — Checkout, Customer Portal, raw-body webhook with idempotency',
+    fixture: 'spineSpec',
+    override: {
+      ui: { modules: { stripeBilling: true } },
+      meta: { slug: 'smoke-module-billing' },
+    },
+  },
 };
 
 // ── process helpers ──────────────────────────────────────────────────────────
