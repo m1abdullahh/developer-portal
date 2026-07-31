@@ -180,6 +180,27 @@ const MATRIX: Array<{ name: string; spec: ProjectSpec }> = [
     name: 'no database',
     spec: spineSpec({ api: { database: 'none', orm: 'none' }, ui: { modules: NO_MODULES } }),
   },
+
+  /*
+   * The first UI-layer environment variable the generator has ever produced.
+   *
+   * Every entry above exercises the API's env contract; the web layer had a schema module and no
+   * contributors, so `.env.example` was never even emitted for it. `userManagement` changes that,
+   * and the two frameworks disagree about what a browser-visible key may be called —
+   * `NEXT_PUBLIC_API_URL` against `VITE_API_URL`. Both are here because a prefix applied to the
+   * wrong framework does not fail loudly: the value simply arrives as `undefined`.
+   */
+  {
+    name: 'user management (Next)',
+    spec: spineSpec({ meta: { slug: 'env-um-next' }, ui: { modules: { userManagement: true } } }),
+  },
+  {
+    name: 'user management (Vite)',
+    spec: spineSpec({
+      meta: { slug: 'env-um-vite' },
+      ui: { framework: 'vite-react', modules: { userManagement: true } },
+    }),
+  },
 ];
 
 describe.each(MATRIX)('env contract — $name', ({ spec }) => {

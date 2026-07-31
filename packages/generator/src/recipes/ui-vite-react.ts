@@ -34,6 +34,7 @@ registerFrameworkContract('vite-react', {
   routesDir: 'pages',
   // No server components exist in a SPA — the directive would be an inert string literal.
   clientDirective: false,
+  publicEnvPrefix: 'VITE_',
 });
 
 export const viteReactRecipe: Recipe = {

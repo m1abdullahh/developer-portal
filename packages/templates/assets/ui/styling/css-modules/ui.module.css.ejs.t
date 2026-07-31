@@ -50,17 +50,71 @@ to: <%= framework.sourceRoot %>components/ui/ui.module.css
   background: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
 }
+.outline {
+  background: transparent;
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
 .button:hover:not(:disabled) {
   opacity: 0.9;
 }
 
+/* Sizes. Present in all three styling systems because the shared Button API declares them —
+   a page module passing size="sm" must compile everywhere, not only under Tailwind. */
+.sizeSm {
+  height: 2rem;
+  padding: 0 0.75rem;
+}
+.sizeMd {
+  height: 2.5rem;
+  padding: 0 1rem;
+}
+.sizeLg {
+  height: 2.75rem;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+}
+.sizeIcon {
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0;
+}
+
 /* ── card ───────────────────────────────────────────────────────────────── */
+/* An unpadded frame. Padding lives on .cardContent, matching the other two styling systems —
+   this rule once carried padding of its own, which made identical markup render differently
+   depending on which design system the project chose. */
 .card {
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
   background: hsl(var(--card));
-  padding: 1.25rem;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1.25rem 1.25rem 0;
+}
+.cardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.cardDescription {
+  margin: 0;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+.cardContent {
+  padding: 1.25rem;
+}
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1.25rem;
 }
 
 /* ── input & select ─────────────────────────────────────────────────────── */

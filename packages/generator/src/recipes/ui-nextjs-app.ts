@@ -40,6 +40,7 @@ registerFrameworkContract('nextjs-app', {
   routesDir: 'app',
   // Server components by default, so anything using hooks must opt in.
   clientDirective: true,
+  publicEnvPrefix: 'NEXT_PUBLIC_',
 });
 
 export const nextjsAppRecipe: Recipe = {

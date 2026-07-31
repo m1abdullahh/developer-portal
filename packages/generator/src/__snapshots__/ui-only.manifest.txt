@@ -8,8 +8,8 @@ fa2ff1438e22  app/layout.tsx
 7af96e3e2993  app/page.tsx
 6ced0c15ca88  components/providers/StoreProvider.tsx
 2b63ca03075f  components/ui/badge.tsx
-7e5986133881  components/ui/button.tsx
-2612907f382a  components/ui/card.tsx
+e7fcee24c876  components/ui/button.tsx
+30c2d1350fae  components/ui/card.tsx
 055125f0c99d  components/ui/dialog.tsx
 0dc330f60c42  components/ui/input.tsx
 d089ac46186b  components/ui/select.tsx

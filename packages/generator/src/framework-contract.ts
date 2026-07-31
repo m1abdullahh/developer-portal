@@ -76,6 +76,20 @@ export interface FrameworkContract {
    * a Next-specific instruction into every framework.
    */
   clientDirective: boolean;
+  /**
+   * Prefix a variable must carry to be readable by browser code.
+   *
+   * Both frameworks gate this, and both use a different word for it: `NEXT_PUBLIC_` under Next,
+   * `VITE_` under Vite. The prefix is a safety boundary rather than a convention — a variable
+   * without it never reaches the bundle, and one with it is compiled in and readable by anyone
+   * with devtools open. Neither may ever hold a secret.
+   *
+   * Page modules need it because they call an API whose base URL is configuration. Naming the key
+   * `NEXT_PUBLIC_API_URL` in a shared template would produce a variable Vite silently ignores —
+   * silently, because the value simply arrives as `undefined` and the fetch goes to the wrong
+   * origin.
+   */
+  publicEnvPrefix: `${string}_`;
 }
 
 /**

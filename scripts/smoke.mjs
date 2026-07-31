@@ -126,6 +126,26 @@ const CASES = {
     fixture: 'uiOnlyVercelSpec',
     override: { ui: { framework: 'vite-react' }, meta: { slug: 'smoke-vite-react' } },
   },
+
+  /*
+   * The userManagement page module (P2.5b), on both layers at once.
+   *
+   * The only case that compiles generated Prisma queries and a page using all eight primitives,
+   * so it is the only one that catches a model whose field names the routes disagree with, or a
+   * primitive whose props the page cannot actually satisfy. Both are invisible to the generator's
+   * own tests, which check that files were produced rather than that they compile.
+   *
+   * MUI on purpose: it is the styling system whose primitives wrap a third-party library, so it
+   * is where a props mismatch surfaces first.
+   */
+  'module-users': {
+    description: 'userManagement across web and api — Prisma model, REST routes, all 8 primitives',
+    fixture: 'spineSpec',
+    override: {
+      ui: { styling: 'mui', modules: { userManagement: true } },
+      meta: { slug: 'smoke-module-users' },
+    },
+  },
 };
 
 // ── process helpers ──────────────────────────────────────────────────────────
@@ -268,23 +288,35 @@ function layersOf(files) {
 }
 
 /**
- * Environment for a generated API.
+ * Every key a layer's `.env.example` documents, filled in.
  *
- * Read from the generated `.env.example` rather than hardcoded, so a recipe that adds a required
- * key gets it filled in here automatically — and a key it forgot to document fails loudly at
- * boot, which is exactly the signal we want.
+ * Read from the generated file rather than hardcoded, so a recipe that adds a required key gets it
+ * supplied here automatically — and a key it forgot to document fails loudly, which is exactly the
+ * signal we want.
+ *
+ * Applied to *every* layer, not only the API. The web layer had no `.env.example` at all until a
+ * page module needed an API base URL, so nothing here supplied one — and `next build` prerenders
+ * pages, which evaluates the env module and throws on the missing key. A build failure, from a
+ * variable the generated `.env.example` documented perfectly well.
  */
-function apiEnv(exampleContent, port) {
-  const env = { PORT: String(port), NODE_ENV: 'production', LOG_LEVEL: 'warn' };
-
+function exampleEnv(exampleContent, into = {}) {
   for (const line of (exampleContent ?? '').split('\n')) {
     const match = /^([A-Z][A-Z0-9_]*)=(.*)$/.exec(line);
     if (!match) continue;
     const [, key, value] = match;
-    if (env[key] !== undefined) continue;
-    env[key] = value.trim() || placeholderFor(key);
+    if (into[key] !== undefined) continue;
+    into[key] = value.trim() || placeholderFor(key);
   }
-  return env;
+  return into;
+}
+
+/** The same keys, plus what an API needs at boot that no `.env.example` documents. */
+function apiEnv(exampleContent, port) {
+  return exampleEnv(exampleContent, {
+    PORT: String(port),
+    NODE_ENV: 'production',
+    LOG_LEVEL: 'warn',
+  });
 }
 
 function placeholderFor(key) {
@@ -293,6 +325,9 @@ function placeholderFor(key) {
     // /health; it is /ready that is allowed to report the database is down.
     return process.env.SMOKE_DATABASE_URL ?? 'postgresql://smoke:smoke@127.0.0.1:5432/smoke';
   }
+  // Anything a schema is likely to validate with `.url()`. A bare 'smoke' fails that check, and
+  // the failure reads as a bug in the recipe rather than in this placeholder.
+  if (/_URL$|_ORIGIN$/.test(key)) return 'http://127.0.0.1:3001';
   if (/SECRET|PRIVATE_KEY/.test(key)) return 'smoke-test-secret-value-at-least-32-characters';
   if (/TOKEN|PASSWORD/.test(key)) return 'smoke-test-placeholder';
   return 'smoke';
@@ -343,11 +378,14 @@ async function bootApi(dir, layer, workspace) {
   }
 }
 
-async function bootWeb(dir) {
+async function bootWeb(dir, layerEnv = {}) {
   const port = await freePort();
   const child = spawn('npm', ['start', '--', '--port', String(port)], {
     cwd: dir,
-    env: { ...process.env, PORT: String(port), NODE_ENV: 'production' },
+    // The documented environment reaches the server too. `NEXT_PUBLIC_*` is inlined at build so
+    // the page would render regardless, but a server component reading the validated `env` module
+    // would not — and the difference is not worth relying on.
+    env: { ...process.env, ...layerEnv, PORT: String(port), NODE_ENV: 'production' },
     shell: IS_WINDOWS,
     detached: !IS_WINDOWS,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -398,6 +436,14 @@ async function smokeCase(name, workspaceRoot) {
     const dir = path.join(workspace, layer.dir);
     const label = layer.dir === '' ? layer.kind : layer.dir.replace(/\/$/, '');
 
+    // This layer's own documented environment, supplied to every command below. A developer who
+    // copies `.env.example` to `.env` gets exactly this, so anything that fails here would have
+    // failed for them on a fresh clone.
+    const layerEnv = exampleEnv(
+      await readFile(path.join(dir, '.env.example'), 'utf8').catch(() => null),
+      { DATABASE_URL: placeholderFor('DATABASE_URL') },
+    );
+
     // `npm install`, not `npm ci` — a generated project has no lockfile yet, and producing one
     // is the developer's first act after cloning.
     const installed = await step(`${label}: install`, async () => {
@@ -415,7 +461,7 @@ async function smokeCase(name, workspaceRoot) {
           cwd: dir,
           timeout: 300_000,
           // Prisma 7 refuses to load a config without this, even for `generate`.
-          env: { DATABASE_URL: placeholderFor('DATABASE_URL') },
+          env: layerEnv,
         });
         if (code !== 0) throw new Error(output);
       });
@@ -436,7 +482,7 @@ async function smokeCase(name, workspaceRoot) {
         const { code, output } = await run('npm', ['run', script], {
           cwd: dir,
           timeout: 300_000,
-          env: { DATABASE_URL: placeholderFor('DATABASE_URL') },
+          env: layerEnv,
         });
         if (code !== 0) throw new Error(output);
       });
@@ -446,13 +492,13 @@ async function smokeCase(name, workspaceRoot) {
       const { code, output } = await run('npm', ['run', 'build'], {
         cwd: dir,
         timeout: 600_000,
-        env: { DATABASE_URL: placeholderFor('DATABASE_URL') },
+        env: layerEnv,
       });
       if (code !== 0) throw new Error(output);
     });
 
     await step(`${label}: boot`, async () =>
-      layer.kind === 'web' ? bootWeb(dir) : bootApi(dir, layer, workspace),
+      layer.kind === 'web' ? bootWeb(dir, layerEnv) : bootApi(dir, layer, workspace),
     );
 
     if (currentCase.failed) return;

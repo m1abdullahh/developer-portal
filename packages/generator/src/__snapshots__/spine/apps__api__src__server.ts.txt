@@ -8,6 +8,7 @@ import { registerRequestContext } from './plugins/request-context.js';
 import { registerRateLimit } from './plugins/rate-limit.js';
 import { registerOpenApi } from './plugins/openapi.js';
 import { tryHandleValidationError } from './lib/validation-error.js';
+import { registerUserRoutes } from './routes/users.js';
 
 /**
  * Builds the server without starting it.
@@ -46,6 +47,8 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerHealthRoutes(app);
 
   // >>> idp:routes
+  // api.module.user-management
+  await registerUserRoutes(app);
   // <<< idp:routes
 
   // ONE error handler for the whole app. Fastify permits only one per scope, so recipes that

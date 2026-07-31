@@ -7,7 +7,7 @@ to: <%= framework.routing === 'file-based' ? framework.sourceRoot + 'app/(auth)/
 <% } -%>
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 /**
@@ -49,43 +49,45 @@ export default function SignIn() {
       </p>
 
       <Card className="mt-6">
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
-          <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-            Email
-            <Input
-              type="email"
-              name="email"
-              value={email}
-              required
-              autoComplete="email"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
+        <CardContent>
+          <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
+            <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+              Email
+              <Input
+                type="email"
+                name="email"
+                value={email}
+                required
+                autoComplete="email"
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
 
-          <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-            Password
-            <Input
-              type="password"
-              name="password"
-              value={password}
-              required
-              // `current-password`, not `new-password`: it tells a password manager to offer the
-              // saved credential rather than to generate a replacement.
-              autoComplete="current-password"
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
+            <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+              Password
+              <Input
+                type="password"
+                name="password"
+                value={password}
+                required
+                // `current-password`, not `new-password`: it tells a password manager to offer the
+                // saved credential rather than to generate a replacement.
+                autoComplete="current-password"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
 
-          {error ? (
-            <p role="alert" style={{ fontSize: '0.75rem', color: 'crimson', margin: 0 }}>
-              {error}
-            </p>
-          ) : null}
+            {error ? (
+              <p role="alert" style={{ fontSize: '0.75rem', color: 'crimson', margin: 0 }}>
+                {error}
+              </p>
+            ) : null}
 
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
 
       <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>

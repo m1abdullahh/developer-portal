@@ -21,9 +21,11 @@ import { reduxToolkitRecipe } from './ui-redux-toolkit.js';
 import { reactQueryRecipe } from './ui-react-query.js';
 import { contextRecipe } from './ui-context.js';
 import { authLayoutsRecipe } from './ui-module-auth-layouts.js';
+import { uiUserManagementRecipe } from './ui-module-user-management.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
+import { apiUserManagementRecipe } from './api-module-user-management.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 import {
   containerNextRecipe,
@@ -43,9 +45,11 @@ export * from './ui-redux-toolkit.js';
 export * from './ui-react-query.js';
 export * from './ui-context.js';
 export * from './ui-module-auth-layouts.js';
+export * from './ui-module-user-management.js';
 export * from './api-node-ts.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
+export * from './api-module-user-management.js';
 export * from './api-middleware.js';
 export * from './ops-container.js';
 export * from './ops-helm.js';
@@ -64,9 +68,13 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   reactQueryRecipe,
   contextRecipe,
   authLayoutsRecipe,
+  // The two halves of userManagement. Listed apart because they belong to different layers;
+  // resolution order comes from `requires` and the phase, not from this array.
+  uiUserManagementRecipe,
   nodeTsRecipe,
   restRecipe,
   prismaRecipe,
+  apiUserManagementRecipe,
   ...MIDDLEWARE_RECIPES,
   containerNextRecipe,
   containerSpaNginxRecipe,

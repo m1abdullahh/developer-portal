@@ -7,7 +7,7 @@ to: <%= framework.routing === 'file-based' ? framework.sourceRoot + 'app/(auth)/
 <% } -%>
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 /** Password reset request. See the note in the sign-in page about the primitive-only import rule. */
@@ -41,9 +41,11 @@ export default function ForgotPassword() {
 
       {sent ? (
         <Card className="mt-6">
-          <p style={{ fontSize: '0.875rem', margin: 0 }}>
-            If an account exists for <strong>{email}</strong>, a reset link is on its way.
-          </p>
+          <CardContent>
+            <p style={{ fontSize: '0.875rem', margin: 0 }}>
+              If an account exists for <strong>{email}</strong>, a reset link is on its way.
+            </p>
+          </CardContent>
         </Card>
       ) : (
         <>
@@ -52,23 +54,25 @@ export default function ForgotPassword() {
           </p>
 
           <Card className="mt-6">
-            <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
-              <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-                Email
-                <Input
-                  type="email"
-                  name="email"
-                  value={email}
-                  required
-                  autoComplete="email"
-                  onChange={(event) => setEmail(event.target.value)}
-                />
-              </label>
+            <CardContent>
+              <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
+                <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+                  Email
+                  <Input
+                    type="email"
+                    name="email"
+                    value={email}
+                    required
+                    autoComplete="email"
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </label>
 
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Sending…' : 'Send reset link'}
-              </Button>
-            </form>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? 'Sending…' : 'Send reset link'}
+                </Button>
+              </form>
+            </CardContent>
           </Card>
         </>
       )}

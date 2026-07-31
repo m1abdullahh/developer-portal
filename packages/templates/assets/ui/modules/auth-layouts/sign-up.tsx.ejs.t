@@ -7,7 +7,7 @@ to: <%= framework.routing === 'file-based' ? framework.sourceRoot + 'app/(auth)/
 <% } -%>
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 /** Registration. See the note in the sign-in page about the primitive-only import rule. */
@@ -48,53 +48,55 @@ export default function SignUp() {
       </p>
 
       <Card className="mt-6">
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
-          <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-            Name
-            <Input
-              name="name"
-              value={name}
-              required
-              autoComplete="name"
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
+        <CardContent>
+          <form onSubmit={onSubmit} style={{ display: 'grid', gap: '1rem' }}>
+            <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+              Name
+              <Input
+                name="name"
+                value={name}
+                required
+                autoComplete="name"
+                onChange={(event) => setName(event.target.value)}
+              />
+            </label>
 
-          <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-            Email
-            <Input
-              type="email"
-              name="email"
-              value={email}
-              required
-              autoComplete="email"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
+            <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+              Email
+              <Input
+                type="email"
+                name="email"
+                value={email}
+                required
+                autoComplete="email"
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
 
-          <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
-            Password
-            <Input
-              type="password"
-              name="password"
-              value={password}
-              required
-              minLength={12}
-              autoComplete="new-password"
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
+            <label style={{ display: 'grid', gap: '0.375rem', fontSize: '0.875rem' }}>
+              Password
+              <Input
+                type="password"
+                name="password"
+                value={password}
+                required
+                minLength={12}
+                autoComplete="new-password"
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </label>
 
-          {error ? (
-            <p role="alert" style={{ fontSize: '0.75rem', color: 'crimson', margin: 0 }}>
-              {error}
-            </p>
-          ) : null}
+            {error ? (
+              <p role="alert" style={{ fontSize: '0.75rem', color: 'crimson', margin: 0 }}>
+                {error}
+              </p>
+            ) : null}
 
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create account'}
-          </Button>
-        </form>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Creating…' : 'Create account'}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
 
       <p style={{ fontSize: '0.75rem', opacity: 0.7 }}>

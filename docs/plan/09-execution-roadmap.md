@@ -121,6 +121,11 @@ it is the schedule's early-warning signal.
 - [ ] Styling: `mui` (React) + Vuetify (Vue); `css-modules` (both) — 8 primitives each
 - [ ] State: `redux-toolkit`, `react-query` (+ companion context store), `context`; Pinia + vue-query
 - [ ] Page modules ×4, each against the primitive API, verified in all 3 styling systems
+      — `authLayouts` and `userManagement` done; `settingsRbac` and `stripeBilling` remain.
+      `userManagement` is split across two recipes, one per layer, since a recipe declares a single
+      layer. Building it exposed that the "identical primitive API" claim was false — Button's
+      `variant` and `size` disagreed across styling systems and Card exported six components under
+      Tailwind and one elsewhere. `styling-api.test.ts` now compares the three declarations.
 - [ ] Wizard: live relabelling for Nuxt, module dependency gating, preview images
 - [ ] BullMQ driver (if Redis has landed) behind the existing interface
 - [ ] Golden snapshots for all new combinations; T2 pairwise matrix live nightly

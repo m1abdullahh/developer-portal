@@ -4,11 +4,13 @@ to: <%= framework.sourceRoot %>components/ui/button.tsx
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-type Variant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
-type Size = 'sm' | 'md' | 'lg' | 'icon';
+// Exported, and named the same as in the other two styling systems. A page module never imports
+// these, but the identity is what `styling-api.test.ts` compares.
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
-const VARIANTS: Record<Variant, string> = {
-  default: 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90',
+const VARIANTS: Record<ButtonVariant, string> = {
+  primary: 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90',
   secondary: 'bg-[hsl(var(--muted))] text-[hsl(var(--foreground))] hover:opacity-90',
   outline: 'border border-[hsl(var(--border))] bg-transparent hover:bg-[hsl(var(--muted))]',
   ghost: 'bg-transparent hover:bg-[hsl(var(--muted))]',
@@ -16,7 +18,7 @@ const VARIANTS: Record<Variant, string> = {
     'bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:opacity-90',
 };
 
-const SIZES: Record<Size, string> = {
+const SIZES: Record<ButtonSize, string> = {
   sm: 'h-8 px-3 text-sm',
   md: 'h-10 px-4 text-sm',
   lg: 'h-11 px-6 text-base',
@@ -24,8 +26,8 @@ const SIZES: Record<Size, string> = {
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 }
 
 /**
@@ -33,9 +35,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  *
  * Page modules import this API rather than Tailwind classes directly, so swapping the design
  * system replaces these ~8 files instead of every page (doc 02 section 2).
+ *
+ * The variant was called `default` here and `primary` in the other two, and `size` existed only
+ * here. Both differences compiled fine until a page module actually passed one — `authLayouts`
+ * never did. `styling-api.test.ts` now compares the three declarations directly.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant = 'default', size = 'md', type = 'button', ...props },
+  { className, variant = 'primary', size = 'md', type = 'button', ...props },
   ref,
 ) {
   return (

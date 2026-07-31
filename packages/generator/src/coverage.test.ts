@@ -17,6 +17,7 @@ import {
   API_RUNTIMES,
   DATABASES,
   UI_FRAMEWORKS,
+  UI_MODULES,
   UI_STATES,
   UI_STYLINGS,
   spineSpec,
@@ -38,7 +39,19 @@ const IMPLEMENTED = {
   runtimes: ['node-ts'],
   paradigms: ['rest'],
   databases: ['postgres', 'none'],
+  /**
+   * Page modules ship as *recipes*, and `userManagement` ships as two of them — one per layer,
+   * because a recipe declares a single layer and this module needs files under both. The ledger
+   * tracks the module name; the id check below knows about the split.
+   */
+  modules: ['authLayouts', 'userManagement'],
 } as const;
+
+/** Page module name to the recipe ids that implement it. */
+const MODULE_RECIPES: Record<string, readonly string[]> = {
+  authLayouts: ['ui.module.auth-layouts'],
+  userManagement: ['ui.module.user-management', 'api.module.user-management'],
+};
 
 const registry = createRegistry();
 
@@ -54,6 +67,7 @@ describe('the implemented ledger matches the enums', () => {
     ['runtimes', IMPLEMENTED.runtimes, API_RUNTIMES],
     ['paradigms', IMPLEMENTED.paradigms, API_PARADIGMS],
     ['databases', IMPLEMENTED.databases, DATABASES],
+    ['modules', IMPLEMENTED.modules, UI_MODULES],
   ])('every implemented %s value is a real enum value', (_name, implemented, values) => {
     for (const value of implemented) {
       expect(values as readonly string[]).toContain(value);
@@ -139,6 +153,32 @@ describe('unimplemented options have no recipe', () => {
     expect(unexpected).toEqual([]);
   });
 });
+
+describe('every implemented page module generates', () => {
+  it.each(IMPLEMENTED.modules)('%s has a recipe for each layer it touches', (module) => {
+    for (const id of MODULE_RECIPES[module] ?? []) {
+      expect(allRecipeIds, `${module} claims ${id}, which no recipe provides`).toContain(id);
+    }
+  });
+
+  /**
+   * The inverse guard, the reason this file exists. A module still labelled "coming in P3" in the
+   * wizard while its recipes ship is a working feature nobody can select — the same silent failure
+   * as an option with no recipe, in the opposite direction.
+   */
+  it.each(UI_MODULES.filter((m) => !(IMPLEMENTED.modules as readonly string[]).includes(m)))(
+    '%s is absent from the registry until the ledger says otherwise',
+    (module) => {
+      const orphans = allRecipeIds.filter((id) => id.endsWith(`.module.${kebab(module)}`));
+      expect(orphans).toEqual([]);
+    },
+  );
+});
+
+/** userManagement -> user-management. Recipe ids are kebab-case; the enum is camelCase. */
+function kebab(value: string): string {
+  return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+}
 
 describe('the registry itself', () => {
   it('has no duplicate ids', () => {

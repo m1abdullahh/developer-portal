@@ -105,8 +105,9 @@ export const UI_MODULES: Record<UiModule, OptionMeta> = {
   },
   userManagement: {
     label: 'User management',
-    description: 'User list, detail and invite flows backed by your database.',
-    comingIn: 'P3',
+    description:
+      'A /users page with search, invites and inline role changes, plus the REST endpoints and ' +
+      'Prisma model behind it. Needs an API layer and a database.',
   },
   stripeBilling: {
     label: 'Stripe billing',
