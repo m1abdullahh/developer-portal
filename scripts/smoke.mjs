@@ -137,9 +137,16 @@ const CASES = {
    * provider tree and its source under `app/`.
    */
   nuxt: {
-    description: 'Nuxt 4 — base shell, no styling or state recipes yet',
+    description: 'Nuxt 4 + CSS Modules — eight primitives as single-file components',
     fixture: 'uiOnlyVercelSpec',
-    override: { ui: { framework: 'nuxt' }, meta: { slug: 'smoke-nuxt' } },
+    // `css-modules`, not the default: it is the one styling option with a Vue implementation, so
+    // this is what actually compiles the `.vue` primitives, their `<style module>` blocks and the
+    // generic `<script setup>` on the table. With the default the recipe declines and this case
+    // proves only that a bare Nuxt shell builds.
+    override: {
+      ui: { framework: 'nuxt', styling: 'css-modules' },
+      meta: { slug: 'smoke-nuxt' },
+    },
   },
 
   /*

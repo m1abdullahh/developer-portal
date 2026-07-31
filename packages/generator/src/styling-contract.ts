@@ -108,9 +108,12 @@ export function stylingContract(spec: ProjectSpec): StylingContract {
 
 /** Test affordance: the styling systems registered for a family. */
 export function registeredStylings(family: FrameworkFamily = 'react'): UiStyling[] {
-  return [...contracts.values()]
-    .filter((c) => c.family === family)
-    .map((c) => c.recipeId.split('.').pop() as UiStyling)
+  // Read back off the key, not derived from the recipe id. `ui.styling.css-modules-vue` is a
+  // recipe id whose last segment is not a `UiStyling` value at all — the recipe implements
+  // `css-modules` for the Vue family, and the suffix only keeps the id unique.
+  return [...contracts.entries()]
+    .filter(([, contract]) => contract.family === family)
+    .map(([entry]) => entry.slice(entry.indexOf(':') + 1) as UiStyling)
     .sort();
 }
 

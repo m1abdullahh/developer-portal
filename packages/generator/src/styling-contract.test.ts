@@ -43,9 +43,29 @@ describe('registration', () => {
   });
 });
 
-describe.each(registeredStylings())('%s', (styling) => {
-  const spec = spineSpec({ ui: { styling } });
+/**
+ * One entry per (family, styling) pair that has a recipe.
+ *
+ * Iterating stylings alone would have silently skipped every Vue implementation: they register
+ * under the same `UiStyling` values, and `registeredStylings()` answers for one family at a time.
+ */
+const IMPLEMENTATIONS = [
+  ...registeredStylings('react').map((styling) => ({
+    name: `react/${styling}`,
+    family: 'react' as const,
+    spec: spineSpec({ ui: { styling } }),
+  })),
+  ...registeredStylings('vue').map((styling) => ({
+    name: `vue/${styling}`,
+    family: 'vue' as const,
+    spec: spineSpec({
+      meta: { slug: `styling-vue-${styling}` },
+      ui: { framework: 'nuxt' as const, styling },
+    }),
+  })),
+];
 
+describe.each(IMPLEMENTATIONS)('$name', ({ family, spec }) => {
   /**
    * Declared and emitted must agree in both directions.
    *
@@ -59,19 +79,30 @@ describe.each(registeredStylings())('%s', (styling) => {
     const contract = stylingContract(spec);
 
     const emitted = PRIMITIVES.filter((primitive) =>
-      files.some((f) => f.path.endsWith(`${root}${primitivePath(primitive)}`)),
+      files.some((f) => f.path.endsWith(`${root}${primitivePath(primitive, family)}`)),
     );
 
     expect([...emitted].sort()).toEqual([...contract.provides].sort());
   });
 
-  it('exports a component named after each primitive', async () => {
+  it('exposes a component named after each primitive', async () => {
     const { files } = await runPipeline(spec, { registry });
     const root = frameworkContract(spec).sourceRoot;
 
     for (const primitive of stylingContract(spec).provides) {
-      const file = files.find((f) => f.path.endsWith(`${root}${primitivePath(primitive)}`));
+      const file = files.find((f) => f.path.endsWith(`${root}${primitivePath(primitive, family)}`));
       const expected = primitive.charAt(0).toUpperCase() + primitive.slice(1);
+
+      if (family === 'vue') {
+        /*
+         * A single-file component IS the export — its name comes from the filename, which
+         * `primitivePath` has already asserted. What is left to check is that the file renders
+         * something: a `.vue` file with no `<template>` compiles to a component that renders
+         * nothing at all, silently.
+         */
+        expect(String(file?.content), `${primitive}.vue has no <template>`).toContain('<template>');
+        continue;
+      }
 
       // Named exports, not default: a default export lets each styling system pick its own name,
       // which is exactly the drift the contract exists to prevent.
