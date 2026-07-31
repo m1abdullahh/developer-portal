@@ -298,10 +298,12 @@ async function lintWorkflows(dir, labelPrefix) {
 
   for (const name of files) {
     await check(`${labelPrefix}actionlint ${name}`, 'actionlint', async () => {
-      // `-color never` keeps ANSI escapes out of the error text we re-print through indent().
+      // `-no-color`, not `-color never`. actionlint's colour flags are a boolean pair — `-color`
+      // to force it on, `-no-color` to force it off — so `never` was read as a second filename
+      // and every invocation failed with "could not read never". Keeping ANSI escapes out of the
+      // error text matters because indent() re-prints it.
       const { code, stdout, stderr } = await run('actionlint', [
-        '-color',
-        'never',
+        '-no-color',
         path.join(workflowDir, name),
       ]);
       if (code !== 0) throw new Error(stdout || stderr);
