@@ -7,7 +7,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { UI_FRAMEWORKS, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
+import {
+  UI_FRAMEWORKS,
+  spineSpec,
+  uiOnlyVercelSpec,
+  type ProjectSpec,
+  type UiFramework,
+} from '@idp/core';
 import {
   UnknownFrameworkError,
   frameworkContract,
@@ -33,8 +39,17 @@ describe('registration', () => {
 
   // Failing loudly is the point: a default provider root would silently target a file that does
   // not exist in the chosen framework.
+  //
+  // Asserted against a value no recipe will ever register, rather than a real framework awaiting
+  // one. This test used to name `nuxt`, and adding the Nuxt recipe turned a passing test into a
+  // failing one without anything being wrong — the guard is about unregistered frameworks in
+  // general, not about whichever one happens to be next.
   it('throws for a framework with no recipe yet', () => {
-    const spec = { ...spineSpec(), ui: { ...spineSpec().ui!, framework: 'nuxt' as const } };
+    const base = spineSpec();
+    const spec = {
+      ...base,
+      ui: { ...base.ui!, framework: 'not-a-framework' as unknown as UiFramework },
+    };
     expect(() => frameworkContract(spec)).toThrow(UnknownFrameworkError);
   });
 
@@ -53,9 +68,22 @@ describe('the provider root really does host {children}', () => {
     '%s renders {children} exactly once before codemods',
     async (framework) => {
       const spec = spineSpec({ ui: { framework } });
-      const { files } = await runPipeline(spec, { registry });
-
       const contract = frameworkContract(spec);
+
+      /*
+       * Only frameworks whose providers are wrapped in JSX.
+       *
+       * Nuxt installs a store as a module named in nuxt.config.ts and a client as a file in
+       * app/plugins/ — nothing wraps app.vue, and a single-file component is not TypeScript, so
+       * the ts-morph codemod could not act on it even if something wanted to. Demanding
+       * `{children}` here would fail a framework that is behaving correctly.
+       *
+       * That is what `providerInstall` exists to say, and this branch is the reason it was added
+       * rather than left implicit.
+       */
+      if (contract.providerInstall !== 'jsx-provider') return;
+
+      const { files } = await runPipeline(spec, { registry });
       const root = files.find((f) => f.path.endsWith(contract.providerRoot));
 
       expect(root, `${contract.providerRoot} was not generated`).toBeDefined();

@@ -13,6 +13,7 @@ import { RecipeRegistry } from '../registry.js';
 import type { Recipe } from '../types.js';
 import { nextjsAppRecipe } from './ui-nextjs-app.js';
 import { viteReactRecipe } from './ui-vite-react.js';
+import { nuxtRecipe } from './ui-nuxt.js';
 import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
 import { cssModulesRecipe } from './ui-css-modules.js';
 import { muiRecipe } from './ui-mui.js';
@@ -34,6 +35,7 @@ import { apiStripeBillingRecipe } from './api-module-stripe-billing.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 import {
   containerNextRecipe,
+  containerNuxtRecipe,
   containerNodeApiRecipe,
   containerSpaNginxRecipe,
 } from './ops-container.js';
@@ -42,6 +44,7 @@ import { argocdRecipe, githubActionsRecipe } from './ops-gitops.js';
 
 export * from './ui-nextjs-app.js';
 export * from './ui-vite-react.js';
+export * from './ui-nuxt.js';
 export * from './ui-tailwind-shadcn.js';
 export * from './ui-css-modules.js';
 export * from './ui-mui.js';
@@ -68,6 +71,7 @@ export * from './ops-gitops.js';
 export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nextjsAppRecipe,
   viteReactRecipe,
+  nuxtRecipe,
   tailwindShadcnRecipe,
   cssModulesRecipe,
   muiRecipe,
@@ -94,6 +98,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   apiStripeBillingRecipe,
   ...MIDDLEWARE_RECIPES,
   containerNextRecipe,
+  containerNuxtRecipe,
   containerSpaNginxRecipe,
   containerNodeApiRecipe,
   helmRecipe,

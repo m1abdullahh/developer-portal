@@ -47,6 +47,23 @@ const IMPLEMENTED = {
   modules: ['authLayouts', 'userManagement', 'settingsRbac', 'stripeBilling'],
 } as const;
 
+/**
+ * Options whose base recipe ships but whose *option* is not yet complete.
+ *
+ * `nuxt` has a framework recipe that installs, lints, typechecks, builds and boots — verified by
+ * the `nuxt` smoke case. What it does not have is a design system, a state library or a single
+ * page module: every one of those recipes declines for a Vue framework. Choosing Nuxt in the
+ * wizard today would produce a working shell with no primitives and no store.
+ *
+ * So it stays disabled in the wizard and out of `IMPLEMENTED` here. This list is the difference
+ * between "we decided not to offer this yet" and "someone forgot", which is the whole reason the
+ * ledger is written by hand rather than derived from the registry — the check below failed the
+ * moment the recipe landed, which is exactly what it is for.
+ */
+const PARTIAL = {
+  frameworks: ['nuxt'],
+} as const;
+
 /** Page module name to the recipe ids that implement it. */
 const MODULE_RECIPES: Record<string, readonly string[]> = {
   authLayouts: ['ui.module.auth-layouts'],
@@ -148,11 +165,25 @@ describe('unimplemented options have no recipe', () => {
     ['api.runtime', API_RUNTIMES, IMPLEMENTED.runtimes as readonly string[]],
     ['api.paradigm', API_PARADIGMS, IMPLEMENTED.paradigms as readonly string[]],
   ])('%s: no recipe exists for a value not in the ledger', (prefix, values, implemented) => {
+    const partial = PARTIAL.frameworks as readonly string[];
+
     const unexpected = values
       .filter((value) => !implemented.includes(value))
+      // A partially-implemented option is a stated decision, not an oversight. Listing it in
+      // PARTIAL is the statement; everything else here still fails.
+      .filter((value) => !partial.includes(value))
       .filter((value) => allRecipeIds.includes(`${prefix}.${value}`));
 
     expect(unexpected).toEqual([]);
+  });
+
+  /**
+   * A partial option must actually be partial — a recipe that exists AND is fully offered belongs
+   * in `IMPLEMENTED`, not here, or the wizard is hiding something that works.
+   */
+  it.each(PARTIAL.frameworks)('%s has a recipe but is not claimed as implemented', (framework) => {
+    expect(allRecipeIds).toContain(`ui.framework.${framework}`);
+    expect(IMPLEMENTED.frameworks as readonly string[]).not.toContain(framework);
   });
 });
 

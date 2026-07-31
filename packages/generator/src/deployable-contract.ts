@@ -90,6 +90,7 @@ export function deployableRecipeId(spec: ProjectSpec): string {
   if (spec.api) return 'ops.container.node-api';
   if (spec.ui?.framework === 'vite-react') return 'ops.container.spa-nginx';
   if (spec.ui?.framework === 'nextjs-app') return 'ops.container.next';
+  if (spec.ui?.framework === 'nuxt') return 'ops.container.nuxt';
 
   throw new Error(
     `No deployable could be determined for "${spec.meta.slug}": it has no API layer and its UI ` +

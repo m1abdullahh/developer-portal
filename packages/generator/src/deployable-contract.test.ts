@@ -92,6 +92,7 @@ describe('the registry is complete', () => {
     expect(registeredDeployables()).toEqual([
       'ops.container.next',
       'ops.container.node-api',
+      'ops.container.nuxt',
       'ops.container.spa-nginx',
     ]);
   });

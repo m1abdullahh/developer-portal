@@ -6,6 +6,19 @@
  * This runs nightly so the failure surfaces here instead.
  *
  * Only exact pins are checked; workspace links ("*") and ranges ("^x") are skipped by design.
+ *
+ * ── Two manifests, not one ──────────────────────────────────────────────────
+ * This repository's own package.json files are the lesser half. The half that matters is
+ * `GENERATED_VERSIONS` in packages/core/src/versions.ts — the versions written INTO every
+ * generated project. A yanked pin there breaks `npm install` for every team who scaffolds a
+ * service afterwards, and nothing else in CI would notice.
+ *
+ * That manifest went unchecked for a long time while this script reported "all pinned versions
+ * resolve", which was true and misleading in equal measure.
+ *
+ * It is read with a regex rather than imported, deliberately: the `versions` CI job runs this on
+ * a bare checkout with no `npm ci` and no build, so there is nothing to import. Parsing the
+ * source keeps the job free of a dependency graph it exists to police.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -48,6 +61,38 @@ function collectPins() {
   return [...pins.values()];
 }
 
+/**
+ * The versions emitted into generated projects.
+ *
+ * Matches `name: '1.2.3',` and `'@scope/name': '1.2.3',` inside the GENERATED_VERSIONS literal.
+ * Comment lines cannot match — they have no colon-quote-version shape — so the explanatory prose
+ * around each entry is skipped without needing to be stripped.
+ */
+function collectGeneratedPins() {
+  const file = path.join(ROOT, 'packages', 'core', 'src', 'versions.ts');
+  if (!existsSync(file)) return [];
+
+  const source = readFileSync(file, 'utf8');
+  const body = source.slice(source.indexOf('GENERATED_VERSIONS'), source.indexOf('} as const'));
+
+  const pins = [];
+  for (const match of body.matchAll(/^\s+'?([@a-z0-9/.-]+)'?:\s*'([^']+)',/gm)) {
+    const [, name, version] = match;
+    if (!EXACT.test(version)) continue;
+    pins.push({ name, version, sources: ['packages/core/src/versions.ts'] });
+  }
+
+  if (pins.length === 0) {
+    // A regex that silently matches nothing would turn this whole check into a no-op reporting
+    // success — the exact failure mode the check was added to remove.
+    throw new Error(
+      'Parsed no versions out of packages/core/src/versions.ts. The manifest format changed and ' +
+        'this parser needs updating — failing rather than reporting a vacuous pass.',
+    );
+  }
+  return pins;
+}
+
 function resolves(name, version) {
   try {
     const out = execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
@@ -61,8 +106,14 @@ function resolves(name, version) {
   }
 }
 
-const pins = collectPins();
-console.log(`Checking ${pins.length} exactly-pinned dependencies...\n`);
+const ownPins = collectPins();
+const generatedPins = collectGeneratedPins();
+const pins = [...ownPins, ...generatedPins];
+
+console.log(
+  `Checking ${pins.length} exactly-pinned dependencies ` +
+    `(${ownPins.length} in this repository, ${generatedPins.length} emitted into projects)...\n`,
+);
 
 const failures = [];
 for (const pin of pins) {

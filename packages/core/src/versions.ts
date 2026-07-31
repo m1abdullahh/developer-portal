@@ -39,6 +39,19 @@ export const GENERATED_VERSIONS = {
   // v8 peers react >=19.2.7, satisfied by the pinned 19.2.8. Verified on 2026-07-30.
   'react-router': '8.3.0',
 
+  // ── UI: Nuxt (P2.4) ───────────────────────────────────────────────────────
+  // Nuxt 4 moved the application source under `app/`, which is why the framework contract's
+  // sourceRoot differs from Next's. Verified on 2026-07-31.
+  nuxt: '4.5.1',
+  vue: '3.5.40',
+  // `nuxt typecheck` shells out to vue-tsc — tsc alone cannot read a `.vue` single-file
+  // component, so the generated typecheck script would pass while ignoring every template.
+  'vue-tsc': '3.3.9',
+  // ESLint cannot parse `.vue` either; the parser and plugin are what make `eslint .` see
+  // template expressions rather than skipping the files.
+  'eslint-plugin-vue': '10.10.0',
+  'vue-eslint-parser': '10.4.1',
+
   // ── UI: styling ───────────────────────────────────────────────────────────
   tailwindcss: '4.3.3',
   // MUI 9 peers React ^19 and both emotion packages, which are its default style engine.

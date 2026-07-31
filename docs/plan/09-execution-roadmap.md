@@ -117,7 +117,11 @@ it is the schedule's early-warning signal.
 ## P2 — UI Breadth (doc 02)
 
 - [ ] `vite-react` framework recipe (+ nginx SPA container variant)
-- [ ] `nuxt` framework recipe + the doc 00 §5.1–5.2 substitution engine
+- [~] `nuxt` framework recipe + the doc 00 §5.1–5.2 substitution engine — base recipe done and
+  smoke-verified (install, lint, vue-tsc, build, boot) plus a Nitro container and deployable
+  contract. The substitution tables already live in `compatibility.ts`. Still to come: Vuetify,
+  Pinia, vue-query, and the four page modules in Vue — until those land Nuxt stays disabled in
+  the wizard and listed as PARTIAL in the coverage ledger.
 - [ ] Styling: `mui` (React) + Vuetify (Vue); `css-modules` (both) — 8 primitives each
 - [ ] State: `redux-toolkit`, `react-query` (+ companion context store), `context`; Pinia + vue-query
 - [ ] Page modules ×4, each against the primitive API, verified in all 3 styling systems

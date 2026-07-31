@@ -22,7 +22,25 @@ import { type ProjectSpec, type UiFramework } from '@idp/core';
 export interface FrameworkContract {
   /** The framework recipe's id, for `requires` — it must run before anything layered on it. */
   recipeId: string;
-  /** File rendering `{children}` exactly once. Provider codemods wrap that expression. */
+  /**
+   * How a recipe installs something around the whole application.
+   *
+   * `jsx-provider` — a component rendering `{children}`, which the `wrapJsxChildren` codemod
+   * wraps. `providerRoot` names the file. This is how both React frameworks work.
+   *
+   * `nuxt-plugin` — nothing wraps anything. Nuxt installs a store or a client by dropping a file
+   * into `app/plugins/` or naming a module in `nuxt.config.ts`, and its own conventions do the
+   * rest. `providerRoot` is not meaningful, and the ts-morph codemod could not act on it anyway:
+   * a `.vue` single-file component is not TypeScript and ts-morph cannot parse one.
+   *
+   * A recipe that wraps providers must branch on this rather than assume the JSX shape.
+   */
+  providerInstall: 'jsx-provider' | 'nuxt-plugin';
+  /**
+   * File rendering `{children}` exactly once. Provider codemods wrap that expression.
+   *
+   * Only meaningful when `providerInstall` is `jsx-provider`.
+   */
   providerRoot: string;
   /** File that imports the global stylesheet, for styling recipes that emit one. */
   stylesheetHost: string;

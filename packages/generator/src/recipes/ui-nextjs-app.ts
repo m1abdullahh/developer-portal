@@ -30,6 +30,7 @@ export const NEXTJS_APP_RECIPE_ID = 'ui.framework.nextjs-app';
  */
 registerFrameworkContract('nextjs-app', {
   recipeId: NEXTJS_APP_RECIPE_ID,
+  providerInstall: 'jsx-provider',
   providerRoot: 'app/layout.tsx',
   stylesheetHost: 'app/layout.tsx',
   stylesheetPath: 'app/globals.css',

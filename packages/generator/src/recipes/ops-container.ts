@@ -18,6 +18,7 @@ import { registerDeployableContract } from '../deployable-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
 import { VITE_REACT_RECIPE_ID } from './ui-vite-react.js';
+import { NUXT_RECIPE_ID } from './ui-nuxt.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import type { Recipe } from '../types.js';
 
@@ -133,6 +134,62 @@ export const containerSpaNginxRecipe: Recipe = {
       'Hashed assets are cached for a year and `index.html` is never cached — it is the map to',
       'those filenames, and a cached copy keeps requesting the previous deploy long after it is',
       'gone.',
+    ].join('\n'),
+  }),
+};
+
+export const CONTAINER_NUXT_RECIPE_ID = 'ops.container.nuxt';
+
+/*
+ * Nitro serves on 3000 and Nuxt's own `server/api/health.ts` answers `/api/health`, so the paths
+ * match Next's even though nothing else about the image does. Readiness points at the same route:
+ * a Nuxt server has no dependency to be un-ready for.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_NUXT_RECIPE_ID,
+  port: 3000,
+  livenessPath: '/api/health',
+  readinessPath: '/api/health',
+  runAsUser: 65532,
+  writablePaths: ['/tmp'],
+});
+
+/**
+ * The Nuxt image.
+ *
+ * Separate from the Next one despite both ending on distroless: Nitro bundles its dependencies
+ * into `.output`, so there is no deps stage and no node_modules to copy. Sharing a template would
+ * mean branching on the framework inside it, which is the coupling the container recipes exist to
+ * avoid.
+ */
+export const containerNuxtRecipe: Recipe = {
+  id: CONTAINER_NUXT_RECIPE_ID,
+  phase: 'integration',
+  layer: 'ui',
+  requires: [NUXT_RECIPE_ID],
+
+  appliesTo: (spec) => containersEnabled(spec) && spec.ui?.framework === 'nuxt',
+
+  files: (ctx) =>
+    loadTemplateDir(templatePath('ops', 'container', 'nuxt'), ctx, CONTAINER_NUXT_RECIPE_ID),
+
+  readme: () => ({
+    order: README_ORDER.deployment,
+    heading: 'Container (web)',
+    body: [
+      '```bash',
+      'docker build -t web:local apps/web    # or . in a UI-only project',
+      '```',
+      '',
+      'Multi-stage, ending on `gcr.io/distroless/nodejs22-debian12:nonroot` — no shell, no package',
+      'manager, running as UID 65532.',
+      '',
+      'The runner copies only `.output`. Nitro bundles every dependency it reaches into that',
+      'directory, so there is no `node_modules` in the final image at all.',
+      '',
+      'The build stage deliberately does NOT pass `--ignore-scripts`. Nuxt’s `postinstall` runs',
+      '`nuxt prepare`, which writes the generated types the build needs — skipping it fails with',
+      'missing `#imports` and nothing that names the cause.',
     ].join('\n'),
   }),
 };

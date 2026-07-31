@@ -90,21 +90,74 @@ const CASES = {
 // ── tools ────────────────────────────────────────────────────────────────────
 
 /**
- * `helm` is listed even though it lints nothing itself: the chart has to be rendered before
- * kubeconform or conftest can look at it, so its absence disables both of them. Recording it
- * here means the summary says "helm missing" once rather than reporting two mystery skips.
+ * Every tool, with the arguments that make it print its version and exit 0.
+ *
+ * `helm` is here even though it lints nothing itself: the chart has to be rendered before
+ * kubeconform or conftest can look at it, so its absence disables both. Recording it means the
+ * summary says "helm unavailable" once rather than reporting two mystery skips.
+ *
+ * The arguments are spelled out per tool because they genuinely disagree, and assuming
+ * `--version` for all five was wrong for two of them: Helm's is a subcommand (`helm version`, not
+ * a flag at all), and kubeconform's Go flag is the single-letter `-v`, so `--version` is an
+ * unrecognised flag and exits non-zero.
+ *
+ * That produced the worst kind of red: CI installed all five correctly, this reported
+ * "missing: helm, kubeconform", and `--require-all` failed the job. Nothing was wrong with the
+ * runner — the probe was.
  */
-const TOOLS = ['hadolint', 'actionlint', 'helm', 'kubeconform', 'conftest'];
+const TOOLS = {
+  hadolint: ['--version'],
+  actionlint: ['--version'],
+  // Not `--version`. Helm 3 has no such flag; `helm version` is a subcommand.
+  helm: ['version', '--short'],
+  // Not `--version`. kubeconform's flag is the single-letter `-v`.
+  kubeconform: ['-v'],
+  conftest: ['--version'],
+};
+
+const TOOL_NAMES = Object.keys(TOOLS);
 
 const available = new Set();
 
+/**
+ * Probes by execution rather than by `which`.
+ *
+ * A binary on PATH that cannot actually run — wrong architecture, missing shared library — is not
+ * a usable tool, and `which` would report it as present.
+ */
 async function detectTools() {
-  for (const tool of TOOLS) {
-    // `--version` rather than `which`: a tool on PATH that cannot execute (wrong architecture,
-    // missing shared library) is not usable, and `which` would report it as present.
-    const { code } = await run(tool, ['--version'], { timeout: 30_000 });
-    if (code === 0) available.add(tool);
+  const failures = [];
+
+  for (const [tool, args] of Object.entries(TOOLS)) {
+    const { code, stdout, stderr, notFound } = await run(tool, args, { timeout: 30_000 });
+
+    if (code === 0) {
+      available.add(tool);
+      continue;
+    }
+
+    /*
+     * The binary ran and disliked the arguments — so it IS installed, and the probe above is
+     * wrong. Treat it as available and say so loudly rather than failing the build.
+     *
+     * This distinction is the lesson from getting two of these flags wrong at once. A probe I
+     * typed badly should cost a warning; only a tool that genuinely is not there should cost a
+     * red build.
+     */
+    if (!notFound) {
+      available.add(tool);
+      console.log(
+        `  \x1b[33mnote\x1b[0m ${tool} is installed but \`${tool} ${args.join(' ')}\` exited ` +
+          `${code}. Assuming it works; fix the probe in TOOLS.`,
+      );
+      continue;
+    }
+
+    // Genuinely absent. Kept with its probe and output, because "missing: helm" sent me looking
+    // at the install step when the cause was one line of stderr from the probe itself.
+    failures.push({ tool, probe: `${tool} ${args.join(' ')}`, detail: (stderr || stdout).trim() });
   }
+  return failures;
 }
 
 // ── process helpers ──────────────────────────────────────────────────────────
@@ -133,14 +186,28 @@ function run(command, args, options = {}) {
 
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ code: code ?? 1, stdout, stderr });
+      resolve({ code: code ?? 1, stdout, stderr, notFound: looksNotFound(stderr) });
     });
     child.on('error', (err) => {
       clearTimeout(timer);
       // ENOENT here is the normal "tool not installed" path, not an exceptional one.
-      resolve({ code: 127, stdout, stderr: `${stderr}${err.message}` });
+      resolve({ code: 127, stdout, stderr: `${stderr}${err.message}`, notFound: true });
     });
   });
+}
+
+/**
+ * "The binary does not exist", distinguished from "the binary rejected these arguments".
+ *
+ * The exit code alone cannot tell them apart. Commands run through a shell on Windows, and
+ * `cmd.exe` answers 1 for an unrecognised command — the same code a tool uses for an unknown
+ * flag — so keying on 127 works on Linux and silently misreports every absent tool on Windows as
+ * present. Matching what the shell actually says is the only signal available on both.
+ */
+function looksNotFound(stderr) {
+  return /is not recognized as an internal or external command|command not found|: not found/i.test(
+    stderr,
+  );
 }
 
 // ── reporting ────────────────────────────────────────────────────────────────
@@ -507,18 +574,24 @@ async function main() {
     }
   }
 
-  await detectTools();
-  const missing = TOOLS.filter((tool) => !available.has(tool));
+  const failures = await detectTools();
 
-  console.log(`\x1b[1mOps lint\x1b[0m — ${TOOLS.length - missing.length}/${TOOLS.length} tools`);
-  if (missing.length > 0) {
-    console.log(`  missing: ${missing.join(', ')}`);
+  console.log(`\x1b[1mOps lint\x1b[0m — ${available.size}/${TOOL_NAMES.length} tools`);
+  if (failures.length > 0) {
+    // The probe and its output, not just the name. "missing: helm" sent me looking at the install
+    // step; the actual cause was that `helm --version` is not a thing, and one line of stderr
+    // would have said so.
+    for (const { tool, probe, detail } of failures) {
+      console.log(`  unavailable: ${tool} — \`${probe}\` failed`);
+      if (detail) console.log(`               ${detail.split('\n')[0]}`);
+    }
+
     if (requireAll) {
-      // Deliberately fatal, and deliberately before any work: in CI a missing tool means the
-      // install step is broken, and letting the run continue would report a green tick for a
-      // suite that checked a fraction of what it claims to.
+      // Deliberately fatal, and deliberately before any work: in CI an unavailable tool means the
+      // install step or the probe is broken, and letting the run continue would report a green
+      // tick for a suite that checked a fraction of what it claims to.
       console.error(
-        `\n\x1b[31mFAILED\x1b[0m — --require-all, but ${missing.length} tool(s) absent`,
+        `\n\x1b[31mFAILED\x1b[0m — --require-all, but ${failures.length} tool(s) unavailable`,
       );
       return 1;
     }

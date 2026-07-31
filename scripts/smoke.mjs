@@ -128,6 +128,21 @@ const CASES = {
   },
 
   /*
+   * Nuxt (P2.4) — the first non-React framework.
+   *
+   * The base recipe only: every styling, state and page-module recipe declines for Vue, so this
+   * proves the shell installs, lints, typechecks, builds and boots and nothing more. That is the
+   * point of running it now — the framework contract's assumptions were React-shaped, and this is
+   * what shows whether the rest of the pipeline copes with a framework that has no JSX, no
+   * provider tree and its source under `app/`.
+   */
+  nuxt: {
+    description: 'Nuxt 4 — base shell, no styling or state recipes yet',
+    fixture: 'uiOnlyVercelSpec',
+    override: { ui: { framework: 'nuxt' }, meta: { slug: 'smoke-nuxt' } },
+  },
+
+  /*
    * The userManagement page module (P2.5b), on both layers at once.
    *
    * The only case that compiles generated Prisma queries and a page using all eight primitives,

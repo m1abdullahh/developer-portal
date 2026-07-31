@@ -24,6 +24,7 @@ export const VITE_REACT_RECIPE_ID = 'ui.framework.vite-react';
 
 registerFrameworkContract('vite-react', {
   recipeId: VITE_REACT_RECIPE_ID,
+  providerInstall: 'jsx-provider',
   // Not main.tsx: the entry point renders <App /> and hosts no {children} for codemods to wrap.
   providerRoot: 'src/providers/Root.tsx',
   stylesheetHost: 'src/main.tsx',
