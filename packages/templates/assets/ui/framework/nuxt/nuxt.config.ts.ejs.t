@@ -1,6 +1,9 @@
 ---
 to: nuxt.config.ts
 ---
+// >>> idp:nuxt-imports
+// <<< idp:nuxt-imports
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   /*
@@ -43,6 +46,27 @@ export default defineNuxtConfig({
     // >>> idp:nuxt-css
     // <<< idp:nuxt-css
   ],
+
+  /*
+   * Packages Nitro must compile rather than treat as pre-built CommonJS.
+   *
+   * A library shipping untranspiled Vue single-file components or modern syntax fails at server
+   * render with a bare syntax error naming a file inside node_modules — which reads as a bug in
+   * the library rather than a missing line of configuration.
+   */
+  build: {
+    transpile: [
+      // >>> idp:nuxt-transpile
+      // <<< idp:nuxt-transpile
+    ],
+  },
+
+  vite: {
+    plugins: [
+      // >>> idp:nuxt-vite-plugins
+      // <<< idp:nuxt-vite-plugins
+    ],
+  },
 
   /*
    * Runtime config, not `process.env` reads scattered through components.

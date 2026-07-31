@@ -52,6 +52,14 @@ export const GENERATED_VERSIONS = {
   'eslint-plugin-vue': '10.10.0',
   'vue-eslint-parser': '10.4.1',
 
+  // ── UI: Vuetify (P2.4, the MUI substitute for Vue) ────────────────────────
+  vuetify: '4.1.7',
+  // The Vite plugin, not vuetify-nuxt-module: that module's only release supporting Vuetify 4 is
+  // a release candidate, and an RC has no place in a scaffold teams take to production. This is
+  // the stable path Vuetify's own Nuxt guide documents — it handles component tree-shaking and
+  // style resolution, which a plain plugin file cannot. Verified on 2026-08-01.
+  'vite-plugin-vuetify': '2.1.3',
+
   // ── UI: styling ───────────────────────────────────────────────────────────
   tailwindcss: '4.3.3',
   // MUI 9 peers React ^19 and both emotion packages, which are its default style engine.
