@@ -46,8 +46,36 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   owner: ['read', 'write', 'delete', 'manage:users', 'manage:settings'],
 };
 
+/**
+ * Consulted before the defaults, when something has installed one.
+ *
+ * The settings module makes the matrix editable and stores the differences in the database. Rather
+ * than teach the auth middleware about that table — coupling authentication to a feature that may
+ * not be installed — the store registers itself here, and every existing caller keeps working
+ * unchanged. With nothing installed, the defaults below are the whole policy.
+ *
+ * Returning `undefined` means "no opinion, use the default", which is different from returning
+ * `false`. Conflating the two would make every unlisted pair a denial the moment any override
+ * existed.
+ */
+export type PermissionResolver = (role: Role, permission: Permission) => boolean | undefined;
+
+let resolver: PermissionResolver | null = null;
+
+export function setPermissionResolver(next: PermissionResolver | null): void {
+  resolver = next;
+}
+
 export function hasPermission(role: Role, permission: Permission): boolean {
+  const override = resolver?.(role, permission);
+  if (override !== undefined) return override;
+
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}
+
+/** The compiled-in defaults, ignoring any resolver. The matrix editor renders against these. */
+export function defaultPermissionsFor(role: Role): readonly Permission[] {
+  return ROLE_PERMISSIONS[role] ?? [];
 }
 
 export function permissionsFor(role: Role): readonly Permission[] {

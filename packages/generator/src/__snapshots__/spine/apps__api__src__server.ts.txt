@@ -8,6 +8,8 @@ import { registerRateLimit } from './plugins/rate-limit.js';
 import { registerOpenApi } from './plugins/openapi.js';
 import { tryHandleValidationError } from './lib/validation-error.js';
 import { registerAuth } from './plugins/auth.js';
+import { registerSettingsRoutes } from './routes/settings.js';
+import { initAccessPolicy } from './lib/access.js';
 import { registerUserRoutes } from './routes/users.js';
 
 /**
@@ -47,6 +49,9 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerHealthRoutes(app);
 
   // >>> idp:routes
+  // api.module.settings-rbac
+  await initAccessPolicy(app.log);
+  await registerSettingsRoutes(app);
   // api.module.user-management
   await registerUserRoutes(app);
   // <<< idp:routes

@@ -44,13 +44,14 @@ const IMPLEMENTED = {
    * because a recipe declares a single layer and this module needs files under both. The ledger
    * tracks the module name; the id check below knows about the split.
    */
-  modules: ['authLayouts', 'userManagement'],
+  modules: ['authLayouts', 'userManagement', 'settingsRbac'],
 } as const;
 
 /** Page module name to the recipe ids that implement it. */
 const MODULE_RECIPES: Record<string, readonly string[]> = {
   authLayouts: ['ui.module.auth-layouts'],
   userManagement: ['ui.module.user-management', 'api.module.user-management'],
+  settingsRbac: ['ui.module.settings-rbac', 'api.module.settings-rbac'],
 };
 
 const registry = createRegistry();

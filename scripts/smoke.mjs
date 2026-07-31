@@ -146,6 +146,26 @@ const CASES = {
       meta: { slug: 'smoke-module-users' },
     },
   },
+
+  /*
+   * settingsRbac (P2.5c) — the module with the most surface behind it.
+   *
+   * Four Prisma models, eight guarded routes, a permission resolver installed into the shared
+   * policy at boot, and four UI panels. The resolver is the part worth running rather than
+   * asserting: it is installed by a side effect at startup, so nothing static proves the process
+   * still boots with it in place.
+   *
+   * CSS Modules on purpose — `module-users` covers MUI, and this exercises the third system
+   * against the Card sub-components the settings panels use heavily.
+   */
+  'module-settings': {
+    description: 'settingsRbac — permission matrix, audit log, API keys, four-tab shell',
+    fixture: 'spineSpec',
+    override: {
+      ui: { styling: 'css-modules', modules: { settingsRbac: true } },
+      meta: { slug: 'smoke-module-settings' },
+    },
+  },
 };
 
 // ── process helpers ──────────────────────────────────────────────────────────

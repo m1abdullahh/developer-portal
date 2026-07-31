@@ -116,8 +116,9 @@ export const UI_MODULES: Record<UiModule, OptionMeta> = {
   },
   settingsRbac: {
     label: 'Settings & RBAC',
-    description: 'Org settings with role and permission management.',
-    comingIn: 'P3',
+    description:
+      'A /settings page with an editable permission matrix, an append-only audit log and ' +
+      'hashed API keys. Needs authentication and a database.',
   },
 };
 

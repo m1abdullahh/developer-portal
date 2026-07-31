@@ -101,8 +101,31 @@ export function insertAtMarkers(
       (a, b) => a.priority - b.priority || a.recipeId.localeCompare(b.recipeId),
     );
 
+    /*
+     * A marked region is a set of declarations, so an identical line contributed twice is always
+     * a defect rather than a repetition anyone wanted: two `NEXT_PUBLIC_API_URL:` entries are a
+     * duplicate object key TypeScript rejects, and two `await registerX(app)` calls register the
+     * same plugin twice.
+     *
+     * It happens whenever two recipes independently need the same thing — `userManagement` and
+     * `settingsRbac` both call the API, so both declare its base URL, and neither can drop the
+     * declaration because either may be enabled alone. Deduplicating here lets both state what
+     * they need without knowing about each other.
+     *
+     * The first contribution in the ordering wins, and ordering is already total, so which recipe
+     * is credited is deterministic rather than dependent on registration order.
+     */
+    const seen = new Set<string>();
     const body: string[] = [];
+
     for (const insertion of ordered) {
+      // Whole blocks, not individual lines. Deduplicating line by line looks equivalent and is
+      // not: a contribution of four Prisma models repeats `}` four times, and dropping the
+      // repeats produced a schema that no longer parsed. A contribution is one unit of meaning.
+      const block = insertion.lines.map((line) => line.trim()).join('\n');
+      if (seen.has(block)) continue;
+      seen.add(block);
+
       body.push(`${indent}${syntax.comment} ${insertion.recipeId}`);
       for (const line of insertion.lines) {
         body.push(line === '' ? '' : `${indent}${line}`);

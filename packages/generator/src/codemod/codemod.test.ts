@@ -225,6 +225,60 @@ app = FastAPI()
     expect(out).toContain('# api.middleware.cors');
   });
 
+  /*
+   * Two recipes needing the same declaration is normal, and emitting it twice is never right.
+   *
+   * `userManagement` and `settingsRbac` both call the API, so both declare its base URL in the
+   * env schema, and neither can drop the declaration because either may be enabled alone. Before
+   * this, enabling both produced two identical object keys and the generated app failed to
+   * typecheck — TS1117, from a project that had merely ticked two boxes in the wizard.
+   */
+  it('emits a duplicated line once, crediting the first contributor', () => {
+    const line = 'app.add_middleware(CORSMiddleware)';
+    const out = insertAtMarkers('main.py', PY, MARKER_SYNTAX.python, [
+      { marker: 'middleware', lines: [line], priority: 10, recipeId: 'b.second' },
+      { marker: 'middleware', lines: [line], priority: 10, recipeId: 'a.first' },
+    ]);
+
+    expect(out.match(new RegExp(line.replace(/[().]/g, '\\$&'), 'g'))).toHaveLength(1);
+    // Ordering is total, so the winner is deterministic rather than registration-dependent.
+    expect(out).toContain('# a.first');
+    // And a contribution left with nothing gets no attribution comment either.
+    expect(out).not.toContain('# b.second');
+  });
+
+  /*
+   * Deduplication is per contribution, not per line, and the difference is not cosmetic.
+   *
+   * Line-level matching seemed equivalent until it met a contribution of four Prisma models: `}`
+   * appears once per model, so every closing brace after the first was dropped and the schema no
+   * longer parsed. A contribution is one unit of meaning; only an identical unit collapses.
+   */
+  it('repeats a line within one contribution', () => {
+    const out = insertAtMarkers('main.py', PY, MARKER_SYNTAX.python, [
+      {
+        marker: 'middleware',
+        lines: ['class A:', '    pass', 'class B:', '    pass'],
+        priority: 10,
+        recipeId: 'a.models',
+      },
+    ]);
+
+    expect(out.match(/ {4}pass/g)).toHaveLength(2);
+  });
+
+  it('leaves partially-overlapping contributions alone', () => {
+    const out = insertAtMarkers('main.py', PY, MARKER_SYNTAX.python, [
+      { marker: 'middleware', lines: ['shared()'], priority: 10, recipeId: 'a.first' },
+      { marker: 'middleware', lines: ['shared()', 'unique()'], priority: 20, recipeId: 'b.second' },
+    ]);
+
+    // Both survive. Trimming the overlap would mean guessing which recipe's block stays coherent
+    // without it — and being wrong is how the Prisma schema above broke.
+    expect(out.match(/shared\(\)/g)).toHaveLength(2);
+    expect(out).toContain('unique()');
+  });
+
   // Ordering must match across Node, Python and Go, or the same spec behaves differently
   // depending on the runtime chosen.
   it('orders by priority regardless of arrival order', () => {
