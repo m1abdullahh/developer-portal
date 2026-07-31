@@ -16,7 +16,7 @@
  * emitting a primitive at the wrong path.
  */
 
-import { type ProjectSpec, type UiStyling } from '@idp/core';
+import { isVueFramework, type ProjectSpec, type UiStyling } from '@idp/core';
 
 /**
  * The eight primitives.
@@ -39,9 +39,25 @@ export const PRIMITIVES = [
 
 export type Primitive = (typeof PRIMITIVES)[number];
 
+/**
+ * Which component language a styling system emits.
+ *
+ * The primitive API is shared *within* a family, not across one. A React page module imports
+ * `Button` from a `.tsx` file and passes children; a Vue page module renders `<UiButton>` backed by
+ * a single-file component and passes a slot. Those cannot be the same file, so "swap the styling
+ * option and every consumer is untouched" holds within React and within Vue — never between them.
+ *
+ * Making that explicit is what stopped `css-modules` for Vue from silently overwriting
+ * `css-modules` for React: both are the same `UiStyling` value, and the registry was keyed on
+ * that value alone.
+ */
+export type FrameworkFamily = 'react' | 'vue';
+
 export interface StylingContract {
   /** The styling recipe's id, for `requires`. */
   recipeId: string;
+  /** The component language this recipe emits. Half of its registry key. */
+  family: FrameworkFamily;
   /**
    * Primitives this system currently emits.
    *
@@ -52,17 +68,26 @@ export interface StylingContract {
   provides: readonly Primitive[];
 }
 
-const contracts = new Map<UiStyling, StylingContract>();
+/** Keyed by family AND styling: one `UiStyling` value has an implementation per family. */
+const contracts = new Map<string, StylingContract>();
+
+const key = (family: FrameworkFamily, styling: UiStyling): string => `${family}:${styling}`;
 
 export function registerStylingContract(styling: UiStyling, contract: StylingContract): void {
-  contracts.set(styling, contract);
+  contracts.set(key(contract.family, styling), contract);
+}
+
+/** The family a spec's framework belongs to. */
+export function familyOf(spec: ProjectSpec): FrameworkFamily {
+  return spec.ui && isVueFramework(spec.ui.framework) ? 'vue' : 'react';
 }
 
 export class UnknownStylingError extends Error {
-  constructor(styling: string) {
+  constructor(styling: string, family: FrameworkFamily = 'react') {
     super(
-      `No styling contract is registered for "${styling}". A styling recipe must call ` +
-        `registerStylingContract() at module load so page modules know which primitives exist.`,
+      `No styling contract is registered for "${styling}" in the ${family} family. A styling ` +
+        `recipe must call registerStylingContract() at module load so page modules know which ` +
+        `primitives exist. Every styling option needs one implementation per framework family.`,
     );
     this.name = 'UnknownStylingError';
   }
@@ -75,19 +100,28 @@ export function stylingContract(spec: ProjectSpec): StylingContract {
     );
   }
 
-  const contract = contracts.get(spec.ui.styling);
-  if (!contract) throw new UnknownStylingError(spec.ui.styling);
+  const family = familyOf(spec);
+  const contract = contracts.get(key(family, spec.ui.styling));
+  if (!contract) throw new UnknownStylingError(spec.ui.styling, family);
   return contract;
 }
 
-/** Test affordance: the styling systems that have registered a contract. */
-export function registeredStylings(): UiStyling[] {
-  return [...contracts.keys()].sort();
+/** Test affordance: the styling systems registered for a family. */
+export function registeredStylings(family: FrameworkFamily = 'react'): UiStyling[] {
+  return [...contracts.values()]
+    .filter((c) => c.family === family)
+    .map((c) => c.recipeId.split('.').pop() as UiStyling)
+    .sort();
 }
 
-/** Where a primitive must be emitted, relative to the framework's source root. */
-export function primitivePath(primitive: Primitive): string {
-  return `components/ui/${primitive}.tsx`;
+/**
+ * Where a primitive must be emitted, relative to the framework's source root.
+ *
+ * The extension follows the family: React emits TSX, Vue emits a single-file component. Hardcoding
+ * `.tsx` here was the second thing that assumed every framework was React.
+ */
+export function primitivePath(primitive: Primitive, family: FrameworkFamily = 'react'): string {
+  return `components/ui/${primitive}${family === 'vue' ? '.vue' : '.tsx'}`;
 }
 
 /** True when a styling system implements the whole set — the bar for offering it in the wizard. */

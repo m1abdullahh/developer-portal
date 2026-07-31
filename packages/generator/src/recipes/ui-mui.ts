@@ -30,6 +30,9 @@ import type { Recipe } from '../types.js';
 export const MUI_RECIPE_ID = 'ui.styling.mui';
 
 registerStylingContract('mui', {
+  // React: these emit .tsx. The Vue implementations register under the same styling value in the
+  // 'vue' family, which is why the registry is keyed on both.
+  family: 'react',
   recipeId: MUI_RECIPE_ID,
   provides: [...PRIMITIVES],
 });

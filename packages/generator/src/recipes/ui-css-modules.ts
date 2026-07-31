@@ -21,6 +21,9 @@ import type { Recipe } from '../types.js';
 export const CSS_MODULES_RECIPE_ID = 'ui.styling.css-modules';
 
 registerStylingContract('css-modules', {
+  // React: these emit .tsx. The Vue implementations register under the same styling value in the
+  // 'vue' family, which is why the registry is keyed on both.
+  family: 'react',
   recipeId: CSS_MODULES_RECIPE_ID,
   provides: [...PRIMITIVES],
 });

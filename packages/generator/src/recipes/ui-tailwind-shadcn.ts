@@ -24,6 +24,9 @@ export const TAILWIND_SHADCN_RECIPE_ID = 'ui.styling.tailwind-shadcn';
  * has nothing framework- or library-specific to fall back on.
  */
 registerStylingContract('tailwind-shadcn', {
+  // React: these emit .tsx. The Vue implementations register under the same styling value in the
+  // 'vue' family, which is why the registry is keyed on both.
+  family: 'react',
   recipeId: TAILWIND_SHADCN_RECIPE_ID,
   provides: [...PRIMITIVES],
 });
