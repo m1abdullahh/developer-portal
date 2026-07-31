@@ -22,6 +22,7 @@ import { README_ORDER } from '../merge/readme.js';
 import { MIDDLEWARE_PRIORITY } from '../codemod/markers.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import { REST_RECIPE_ID } from './api-rest.js';
+import { API_PERMISSIONS_RECIPE_ID } from './policy-permissions.js';
 import type { CodemodOp, Recipe } from '../types.js';
 
 const isNode = (spec: ProjectSpec): boolean => spec.api?.runtime === 'node-ts';
@@ -266,7 +267,10 @@ export const authJwtRecipe: Recipe = {
   id: AUTH_JWT_RECIPE_ID,
   phase: 'feature',
   layer: 'api',
-  requires: [NODE_TS_RECIPE_ID],
+  // The policy this plugin enforces used to be one of its own template files, which put it out of
+  // reach of every recipe that does not enable JWT. It is a shared definition now — see
+  // policy-permissions.ts for what that mis-scoping cost.
+  requires: [NODE_TS_RECIPE_ID, API_PERMISSIONS_RECIPE_ID],
   appliesTo: (spec) => isNode(spec) && spec.api!.middleware.auth === 'jwt',
   files: (ctx) =>
     loadTemplateDir(templatePath('api', 'middleware', 'auth-jwt'), ctx, AUTH_JWT_RECIPE_ID),

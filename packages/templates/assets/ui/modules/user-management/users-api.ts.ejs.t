@@ -2,6 +2,7 @@
 to: <%= framework.sourceRoot %>lib/users-api.ts
 ---
 import { env } from '@/lib/env';
+import { ROLES, type Role } from '@/lib/permissions';
 
 /**
  * Typed client for the users API.
@@ -13,10 +14,18 @@ import { env } from '@/lib/env';
  */
 const BASE = env.<%= framework.publicEnvPrefix %>API_URL.replace(/\/+$/, '');
 
-export const USER_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'] as const;
+/**
+ * Re-exported from the policy, not redeclared.
+ *
+ * `lib/permissions.ts` is emitted into this app *and* into the API from one template, so the role
+ * list here is the same one the server enforces and the same one the database stores. This module
+ * did once declare its own, which is how a project came to ship `OWNER | ADMIN | MEMBER | VIEWER`
+ * in the browser against `viewer | editor | admin` on the server.
+ */
+export const USER_ROLES = ROLES;
 export const USER_STATUSES = ['INVITED', 'ACTIVE', 'SUSPENDED'] as const;
 
-export type UserRole = (typeof USER_ROLES)[number];
+export type UserRole = Role;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 export interface User {
@@ -91,7 +100,7 @@ export function listUsers(query: ListUsersQuery = {}): Promise<Page<User>> {
 export function inviteUser(body: {
   email: string;
   name?: string;
-  role: Exclude<UserRole, 'OWNER'>;
+  role: Exclude<UserRole, 'owner'>;
 }): Promise<User> {
   return request<User>('/users', { method: 'POST', body: JSON.stringify(body) });
 }

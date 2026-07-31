@@ -154,7 +154,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
 
       // Both branches strip an owner of the ability to act, so both count as losing an owner.
       const losesOwner =
-        (body.role !== undefined && body.role !== 'OWNER') ||
+        (body.role !== undefined && body.role !== 'owner') ||
         (body.status !== undefined && body.status !== 'ACTIVE');
 
       try {
@@ -162,7 +162,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
           const current = await tx.user.findUnique({ where: { id } });
           if (!current) return null;
 
-          if (current.role === 'OWNER' && losesOwner) await assertAnotherOwnerExists(tx, id);
+          if (current.role === 'owner' && losesOwner) await assertAnotherOwnerExists(tx, id);
 
           return tx.user.update({
             where: { id },
@@ -203,7 +203,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
           const current = await tx.user.findUnique({ where: { id } });
           if (!current) return false;
 
-          if (current.role === 'OWNER') await assertAnotherOwnerExists(tx, id);
+          if (current.role === 'owner') await assertAnotherOwnerExists(tx, id);
 
           await tx.user.delete({ where: { id } });
           return true;
@@ -237,7 +237,7 @@ async function assertAnotherOwnerExists(
   // ACTIVE only. A suspended or still-invited owner cannot sign in, so counting them would let
   // the organisation reach a state where every owner is locked out.
   const others = await tx.user.count({
-    where: { role: 'OWNER', status: 'ACTIVE', id: { not: excludingId } },
+    where: { role: 'owner', status: 'ACTIVE', id: { not: excludingId } },
   });
   if (others === 0) throw new LastOwnerError();
 }

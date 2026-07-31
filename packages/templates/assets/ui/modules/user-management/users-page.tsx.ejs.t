@@ -237,7 +237,7 @@ function InviteDialog({
 }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<Exclude<UserRole, 'OWNER'>>('MEMBER');
+  const [role, setRole] = useState<Exclude<UserRole, 'owner'>>('editor');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -296,13 +296,13 @@ function InviteDialog({
           Role
           <Select
             value={role}
-            // OWNER is absent on purpose. Ownership is transferred from an existing owner, never
+            // `owner` is absent on purpose. Ownership is transferred from an existing owner, never
             // handed out with an invitation — the API rejects it too.
-            options={USER_ROLES.filter((r) => r !== 'OWNER').map((r) => ({
+            options={USER_ROLES.filter((r) => r !== 'owner').map((r) => ({
               value: r,
               label: title(r),
             }))}
-            onValueChange={(value) => setRole(value as Exclude<UserRole, 'OWNER'>)}
+            onValueChange={(value) => setRole(value as Exclude<UserRole, 'owner'>)}
           />
         </label>
 
@@ -316,7 +316,7 @@ function InviteDialog({
   );
 }
 
-/** OWNER -> Owner. The enums are SCREAMING_SNAKE on the wire and sentence case on screen. */
+/** owner -> Owner. Roles are lowercase on the wire and sentence case on screen. */
 function title(value: string): string {
   return value.charAt(0) + value.slice(1).toLowerCase();
 }

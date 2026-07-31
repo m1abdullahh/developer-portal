@@ -13,10 +13,13 @@
  * schema already rejects `userManagement` without an API layer and a database (doc 00 §5.6), so
  * neither half has to defend against the other being absent.
  *
- * ── Owning the enums ────────────────────────────────────────────────────────
- * `UserRole` is declared here rather than in `settingsRbac`, because a role is an attribute of a
- * user and both modules would otherwise contribute the same enum to the same marker. Whichever
- * one ran second would produce a schema Prisma refuses to parse.
+ * ── Where the roles come from ───────────────────────────────────────────────
+ * Not here. `UserRole` is contributed by `api.policy.permissions`, whose `permissions.ts` is the
+ * single definition the API middleware and the browser guards both read.
+ *
+ * This module did declare its own list — `OWNER | ADMIN | MEMBER | VIEWER` — which shipped
+ * alongside the policy's `viewer | editor | admin` in the same service. Nothing failed; the two
+ * simply could not be used together. `settingsRbac` would have made it three.
  */
 
 import { templatePath } from '@idp/templates';
@@ -26,6 +29,7 @@ import { README_ORDER } from '../merge/readme.js';
 import { MIDDLEWARE_PRIORITY } from '../codemod/markers.js';
 import { REST_RECIPE_ID } from './api-rest.js';
 import { PRISMA_RECIPE_ID } from './api-prisma.js';
+import { API_PERMISSIONS_RECIPE_ID } from './policy-permissions.js';
 import type { CodemodOp, Recipe } from '../types.js';
 
 export const API_USER_MANAGEMENT_RECIPE_ID = 'api.module.user-management';
@@ -38,13 +42,6 @@ export const API_USER_MANAGEMENT_RECIPE_ID = 'api.module.user-management';
  * would simply be ignored.
  */
 const MODELS = [
-  'enum UserRole {',
-  '  OWNER',
-  '  ADMIN',
-  '  MEMBER',
-  '  VIEWER',
-  '}',
-  '',
   'enum UserStatus {',
   '  /// Invited but has not yet proved control of the address.',
   '  INVITED',
@@ -59,7 +56,7 @@ const MODELS = [
   '  /// treats Ada@example.com and ada@example.com as two people.',
   '  email     String     @unique',
   '  name      String?',
-  '  role      UserRole   @default(MEMBER)',
+  '  role      UserRole   @default(editor)',
   '  status    UserStatus @default(INVITED)',
   '  createdAt DateTime   @default(now())',
   '  updatedAt DateTime   @updatedAt',
@@ -77,7 +74,8 @@ export const apiUserManagementRecipe: Recipe = {
   // its client before these routes can import either.
   phase: 'integration',
   layer: 'api',
-  requires: [REST_RECIPE_ID, PRISMA_RECIPE_ID],
+  // The policy owns UserRole and must contribute it to the schema before this model uses it.
+  requires: [REST_RECIPE_ID, PRISMA_RECIPE_ID, API_PERMISSIONS_RECIPE_ID],
 
   /*
    * Narrower than the module gate on purpose.

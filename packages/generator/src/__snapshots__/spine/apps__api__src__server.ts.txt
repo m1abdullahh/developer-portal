@@ -2,12 +2,12 @@ import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import { env } from './config/env.js';
 import { loggerOptions } from './lib/logger.js';
 import { registerHealthRoutes } from './routes/health.js';
-import { registerAuth } from './plugins/auth.js';
 import { registerCors } from './plugins/cors.js';
 import { registerRequestContext } from './plugins/request-context.js';
 import { registerRateLimit } from './plugins/rate-limit.js';
 import { registerOpenApi } from './plugins/openapi.js';
 import { tryHandleValidationError } from './lib/validation-error.js';
+import { registerAuth } from './plugins/auth.js';
 import { registerUserRoutes } from './routes/users.js';
 
 /**

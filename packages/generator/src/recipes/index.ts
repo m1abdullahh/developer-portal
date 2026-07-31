@@ -25,6 +25,7 @@ import { uiUserManagementRecipe } from './ui-module-user-management.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { restRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
+import { apiPermissionsRecipe, uiPermissionsRecipe } from './policy-permissions.js';
 import { apiUserManagementRecipe } from './api-module-user-management.js';
 import { MIDDLEWARE_RECIPES } from './api-middleware.js';
 import {
@@ -49,6 +50,7 @@ export * from './ui-module-user-management.js';
 export * from './api-node-ts.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
+export * from './policy-permissions.js';
 export * from './api-module-user-management.js';
 export * from './api-middleware.js';
 export * from './ops-container.js';
@@ -74,6 +76,9 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   nodeTsRecipe,
   restRecipe,
   prismaRecipe,
+  // The role and permission policy, emitted into whichever layers enforce it.
+  apiPermissionsRecipe,
+  uiPermissionsRecipe,
   apiUserManagementRecipe,
   ...MIDDLEWARE_RECIPES,
   containerNextRecipe,
