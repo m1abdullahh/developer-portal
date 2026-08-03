@@ -18,7 +18,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { apiOnlyGoSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
+import { apiOnlyPythonSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
 import { createRegistry } from './recipes/index.js';
 import { runPipeline } from './pipeline.js';
 import type { VirtualFile } from './types.js';
@@ -37,7 +37,7 @@ async function generate(spec: ProjectSpec) {
 const MATRIX: Array<{ name: string; spec: ProjectSpec }> = [
   { name: 'full spine', spec: spineSpec() },
   { name: 'UI only', spec: uiOnlyVercelSpec() },
-  { name: 'API only (Go)', spec: apiOnlyGoSpec() },
+  { name: 'API only (Python)', spec: apiOnlyPythonSpec() },
   {
     name: 'no k8s',
     spec: spineSpec({

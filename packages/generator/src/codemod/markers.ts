@@ -30,6 +30,10 @@ export const MARKER_SYNTAX = {
   go: { comment: '//' },
   yaml: { comment: '#' },
   shell: { comment: '#' },
+  // TOML, for `pyproject.toml`. Python's dependency manifest has no structural merger the way
+  // package.json does, so recipes contribute to it through a marker region — which means the
+  // marker layer has to know that TOML comments are `#` and not `//`.
+  toml: { comment: '#' },
 } as const satisfies Record<string, MarkerSyntax>;
 
 export class MissingMarkerError extends Error {
@@ -153,6 +157,10 @@ export function syntaxForPath(filePath: string): MarkerSyntax {
   if (/\.go$/.test(filePath)) return MARKER_SYNTAX.go;
   if (/\.(ya?ml)$/.test(filePath)) return MARKER_SYNTAX.yaml;
   if (/\.(sh|bash)$/.test(filePath)) return MARKER_SYNTAX.shell;
+  if (/\.toml$/.test(filePath)) return MARKER_SYNTAX.toml;
+  // The default is `//`, which is correct for TypeScript and wrong — silently — for any
+  // `#`-commented format not listed above. It surfaces as MissingMarkerError rather than as a
+  // dropped contribution, because the marker region is looked up before anything is written.
   return MARKER_SYNTAX.ts;
 }
 

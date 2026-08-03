@@ -112,6 +112,70 @@ describe.each(CASES)('$name', ({ spec }) => {
   });
 });
 
+/**
+ * The cross-language half.
+ *
+ * A FastAPI backend with a Next.js frontend enforces the same policy from two files that cannot be
+ * byte-identical — one is a TypeScript union, the other a `Literal` plus `get_args`. Byte equality
+ * is the wrong assertion there, and dropping the assertion entirely is how the three-vocabulary
+ * bug above happened in the first place.
+ *
+ * So this parses both and compares what actually matters: the roles, the permissions, and which
+ * role holds which. Everything else about the two files may differ freely.
+ */
+describe('the policy is the same policy in every language', () => {
+  const spec = spineSpec({
+    meta: { slug: 'policy-python' },
+    api: { runtime: 'python-fastapi', paradigm: 'rest', database: 'postgres', orm: 'sqlmodel' },
+  });
+
+  /** `viewer: ['read'],` and `"viewer": ("read",),` reduced to the same shape. */
+  const parseMatrix = (source: string, open: string): Record<string, string[]> => {
+    const body = source.slice(source.indexOf(open) + open.length);
+    const matrix: Record<string, string[]> = {};
+
+    for (const line of body.split('\n')) {
+      const entry = /^\s*['"]?([a-z]+)['"]?\s*:\s*[[(](.*?)[\])]/.exec(line);
+      if (!entry) {
+        // Stop at the closing brace so a later object in the same file cannot leak in.
+        if (/^\s*[}]/.test(line)) break;
+        continue;
+      }
+      matrix[entry[1]!] = [...entry[2]!.matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1]!).sort();
+    }
+    return matrix;
+  };
+
+  it('grants each role exactly the same permissions in TypeScript and Python', async () => {
+    const files = await generate(spec);
+
+    const ts = String(find(files, 'lib/permissions.ts')[0]?.content);
+    const py = String(find(files, 'lib/permissions.py')[0]?.content);
+
+    expect(ts, 'the browser app should still receive the TypeScript policy').toBeTruthy();
+    expect(py, 'the FastAPI service should receive the Python policy').toBeTruthy();
+
+    const tsMatrix = parseMatrix(ts, 'ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {');
+    const pyMatrix = parseMatrix(py, 'ROLE_PERMISSIONS: dict[Role, tuple[Permission, ...]] = {');
+
+    // Guards against the parser silently matching nothing, which would make this whole assertion
+    // a comparison of two empty objects.
+    expect(Object.keys(tsMatrix).sort()).toEqual(['admin', 'editor', 'owner', 'viewer']);
+    expect(pyMatrix).toEqual(tsMatrix);
+  });
+
+  it('the Python service declares roles in exactly one place', async () => {
+    const files = await generate(spec);
+
+    const declarations = files
+      .filter((f) => f.path.endsWith('.py'))
+      .filter((f) => /^ROLE_PERMISSIONS\s*[:=]/m.test(String(f.content)))
+      .map((f) => f.path);
+
+    expect(declarations).toEqual(['apps/api/app/lib/permissions.py']);
+  });
+});
+
 describe('applicability', () => {
   it('is emitted for userManagement even with auth off', async () => {
     // The precise hole that caused the divergence: this module's gate never mentions auth, so it

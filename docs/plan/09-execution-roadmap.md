@@ -161,15 +161,46 @@ and all four page modules, each smoke-verified.
 
 ## P3 — API Breadth (doc 03)
 
-- [ ] `python-fastapi` runtime recipe (uv, ruff, pydantic v2) + marker-anchor injection
+- [x] `python-fastapi` runtime recipe (uv, ruff, pydantic v2) + marker-anchor injection — complete
+      and enabled in the wizard. Runtime, all five middleware, REST/OpenAPI 3.1, SQLModel with
+      Alembic, a distroless image and a CI workflow that runs uv rather than npm.
+
+  Getting there needed a **runtime contract**, the API-side twin of the framework contract, and it
+  was found the same way: by a second implementation rather than by inspection. Every middleware
+  recipe opened with `spec.api?.runtime === 'node-ts'` and wrote codemods against the literal
+  `src/server.ts` — which reads as a runtime check and is really an assumption that there is only
+  one. Three things fell out of it:
+
+  - `deployableRecipeId` returned `ops.container.node-api` for **any** spec with an API layer. A
+    FastAPI project would have rendered a chart routing to 3001 and probing an image listening on 8000. The chart renders, kubeconform passes, `kubectl apply` succeeds, and the pod never goes
+    Ready — nothing short of a real cluster says why.
+  - The generated `ci.yml` ran `npm ci` and `npm run build` for a Python project. Every step fails,
+    on the first push, in the repository the portal had just provisioned for someone.
+  - `docker-compose.yml` was owned by the Prisma recipe, so the FastAPI README said
+    `docker compose up -d postgres` against a file nothing generated.
+
+  Two smaller ones worth recording: `syntaxForPath` had no TOML case, so marker insertion into
+  `pyproject.toml` looked for `//` in a `#`-commented file; and Starlette applies middleware in the
+  reverse of the order it is added, so the Python recipes emit their calls in **descending**
+  priority to land the same request path the Node runtime has.
+
 - [ ] `go-gin` runtime recipe + marker-anchor injection
 - [ ] Paradigms: `graphql` (Apollo 4 / Strawberry / gqlgen, all with DataLoader), `trpc` (Node-only, gated)
-- [ ] ORMs: Drizzle, Mongoose, SQLModel, SQLAlchemy, Beanie, GORM, sqlc, mongo-go
+- [ ] ORMs: Drizzle, Mongoose, SQLAlchemy, Beanie, GORM, sqlc, mongo-go — SQLModel done
 - [ ] Redis cache-layer recipe across all three runtimes
-- [ ] All 5 middleware recipes ported to Python and Go with a uniform error envelope
-- [ ] Python + Go container recipes (distroless python3 / distroless static)
-- [ ] Shared `permissions` policy emitted for all runtimes
-- [ ] Wizard: runtime-driven ORM and paradigm gating with stated reasons
+- [x] All 5 middleware recipes ported to Python with a uniform error envelope; Go outstanding.
+      The envelope, the variable names and the effective ordering are asserted across runtimes by
+      `runtime-contract.test.ts` rather than left to convention — a chart setting `CORS_ORIGINS`
+      for a service reading `CORS_ALLOWED_ORIGINS` boots, serves and fails only in production.
+- [x] Python container recipe (distroless python3); Go outstanding.
+      The builder is pinned to `python:3.11-slim-bookworm` to match the interpreter in
+      `gcr.io/distroless/python3-debian12` — a venv built against another minor version copies in
+      fine and then fails to import anything with a compiled extension, at container start.
+- [x] Shared `permissions` policy emitted for Python as well as TypeScript. The two files cannot be
+      byte-identical, so `policy-contract.test.ts` parses both and compares the role/permission
+      matrix instead — dropping the assertion is how the three-vocabulary bug happened before.
+- [ ] Wizard: runtime-driven ORM and paradigm gating with stated reasons — `python-fastapi` is out
+      of "coming in P3" and selectable; the gating rules themselves are still to build.
 
 **Gate:** every valid runtime × paradigm × ORM combination passes T2. REST projects emit a
 spectral-clean OpenAPI 3.0 document. Migrations apply against a fresh DB in CI.

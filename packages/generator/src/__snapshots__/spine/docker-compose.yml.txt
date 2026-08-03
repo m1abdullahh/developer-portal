@@ -2,6 +2,11 @@
 #
 # Root-anchored deliberately: in a UI+API project this stays at the repository root rather
 # than under apps/api/, because it serves the whole workspace.
+#
+# Shared by every Postgres ORM recipe rather than owned by one of them. It used to live inside the
+# Prisma recipe, which meant a FastAPI project got a README telling it to run
+# `docker compose up -d postgres` against a file that was never generated. Exactly one ORM recipe
+# applies to any given spec, so loading one shared template from each cannot collide.
 services:
   postgres:
     image: postgres:17-alpine

@@ -1,6 +1,14 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`golden — 'api-only-go' > post-install instructions 1`] = `[]`;
+exports[`golden — 'api-only-python' > post-install instructions 1`] = `
+[
+  "uv sync",
+  "uv run python -m app",
+  "docker compose up -d postgres",
+  "uv run alembic revision --autogenerate -m "initial schema"",
+  "uv run alembic upgrade head",
+]
+`;
 
 exports[`golden — 'spine' > post-install instructions 1`] = `
 [

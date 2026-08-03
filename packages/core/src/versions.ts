@@ -127,6 +127,95 @@ export const GENERATED_VERSIONS = {
 export type GeneratedPackage = keyof typeof GENERATED_VERSIONS;
 
 /**
+ * The same manifest for PyPI, kept separate rather than merged into GENERATED_VERSIONS.
+ *
+ * Two reasons, and the first is not the obvious one. Package names are not unique *across*
+ * registries — `httpx`, `ruff` and `uvicorn` all have unrelated npm packages — so one flat map
+ * would resolve a Python pin against the npm registry and cheerfully report that it exists.
+ * The nightly version check would pass while pinning the wrong software entirely.
+ *
+ * The second is that Python's version grammar is not semver. `2.13.4` looks the same, but PEP 440
+ * also permits `1.0.post1` and `2.0.0rc1`, which the semver regex in check-versions.mjs rejects.
+ * A separate map lets that script apply the right grammar to each.
+ *
+ * All values verified against PyPI on 2026-08-04.
+ */
+export const PYTHON_VERSIONS = {
+  // ── API: FastAPI (P3) ─────────────────────────────────────────────────────
+  fastapi: '0.141.1',
+  // Not `uvicorn[standard]`. The extras bracket is install syntax, not a package name, and PyPI
+  // has no such project to resolve. The extras are requested where the dependency is declared.
+  uvicorn: '0.52.1',
+  // v2, per the roadmap. v1 and v2 differ enough that `from pydantic import BaseModel` is about
+  // the only line they share, and FastAPI 0.141 requires v2 regardless.
+  pydantic: '2.13.4',
+  // Split out of pydantic in v2. This is the analogue of the Zod schema in `src/config/env.ts` —
+  // it validates the environment once at import and fails the process at boot with the key named.
+  'pydantic-settings': '2.14.2',
+  // Linter and formatter in one binary, which is why the generated project has no separate black
+  // or isort. Ruff is pre-1.0 and does make breaking changes in minor releases, so the pin is
+  // exact for the same reason every other pin here is.
+  ruff: '0.16.1',
+  // The package manager, pinned even though it is never installed *into* the project: the
+  // Dockerfile copies this exact tag from ghcr.io/astral-sh/uv, and the tag and the PyPI release
+  // are cut from the same commit. Pinning it here is what puts it in front of the nightly check —
+  // an image tag inlined in a template is a version nothing verifies.
+  uv: '0.12.1',
+  pytest: '9.1.1',
+  // FastAPI's TestClient is a thin wrapper over httpx, and importing it without httpx installed
+  // raises at import time rather than at first use.
+  httpx: '0.28.1',
+
+  // ── API: middleware ───────────────────────────────────────────────────────
+  // The distribution is `PyJWT`; the import is `jwt`. Both names exist on PyPI and they are
+  // different projects — `jwt` is an unrelated, far less used library — so installing the wrong
+  // one produces a service that imports successfully and verifies nothing the same way.
+  PyJWT: '2.13.0',
+
+  // ── API: SQLModel (P3) ────────────────────────────────────────────────────
+  // SQLModel is SQLAlchemy plus Pydantic, so one class is both the table and the request model.
+  // Still 0.0.x and it does move, which is why the pin is exact.
+  sqlmodel: '0.0.39',
+  // Migrations. SQLModel has no migration tool of its own — it is SQLAlchemy underneath, and this
+  // is SQLAlchemy's. Without it, schema changes reach production as `create_all`, which never
+  // alters an existing table and so silently does nothing.
+  alembic: '1.18.5',
+  // The async Postgres driver SQLAlchemy 2 drives. `psycopg` would also work but the async story
+  // is newer; asyncpg is what `postgresql+asyncpg://` in the generated URL expects.
+  asyncpg: '0.31.0',
+} as const satisfies Record<string, string>;
+
+export type PythonPackage = keyof typeof PYTHON_VERSIONS;
+
+/** Looks up a pinned PyPI version, failing loudly if the package is unknown. */
+export function pythonVersion(pkg: PythonPackage): string {
+  const v = PYTHON_VERSIONS[pkg];
+  if (!v) {
+    throw new Error(
+      `No pinned version for the Python package "${pkg}". Add it to PYTHON_VERSIONS in ` +
+        `packages/core/src/versions.ts rather than inlining a version in a template.`,
+    );
+  }
+  return v;
+}
+
+/**
+ * Renders PEP 508 requirement strings for a `pyproject.toml` dependency array.
+ *
+ * `==` rather than `>=` or `~=`: the whole manifest exists so that two runs of the same spec
+ * produce the same project (doc 05 §6), and a compatible-release clause reintroduces exactly the
+ * drift the pins remove.
+ */
+export function pythonRequirements(
+  packages: readonly (PythonPackage | [PythonPackage, string])[],
+): string[] {
+  return packages.map((entry) => {
+    const [pkg, extras] = Array.isArray(entry) ? entry : [entry, ''];
+    return `${pkg}${extras}==${pythonVersion(pkg)}`;
+  });
+}
+
+/**
  * Looks up a pinned version, failing loudly if the package is unknown.
  *
  * Templates must never inline a version literal — an unpinned dependency silently

@@ -22,7 +22,7 @@
 
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { apiOnlyGoSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
+import { apiOnlyPythonSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
 import { createRegistry } from './recipes/index.js';
 import { runPipeline } from './pipeline.js';
 import type { VirtualFile } from './types.js';
@@ -75,7 +75,7 @@ const FULL_TEXT = [
 const MATRIX: Array<{ name: string; spec: ProjectSpec }> = [
   { name: 'spine', spec: spineSpec() },
   { name: 'ui-only', spec: uiOnlyVercelSpec() },
-  { name: 'api-only-go', spec: apiOnlyGoSpec() },
+  { name: 'api-only-python', spec: apiOnlyPythonSpec() },
 ];
 
 describe.each(MATRIX)('golden — $name', ({ name, spec }) => {

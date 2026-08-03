@@ -77,7 +77,7 @@ a9bef9686472  deploy/templates/pdb.yaml
 d89322819a05  deploy/values-prod.yaml
 7e141da42f1f  deploy/values-staging.yaml
 8728c052d462  deploy/values.yaml
-cc1e6c2e2b3e  docker-compose.yml
+fab35814be9c  docker-compose.yml
 dd40c3cf25fb  gitops/application-dev.yaml
 fa5e1df566f9  gitops/application-prod.yaml
 f436785b080b  gitops/application-staging.yaml

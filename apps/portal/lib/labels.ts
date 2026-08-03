@@ -128,8 +128,7 @@ export const API_RUNTIMES: Record<ApiRuntime, OptionMeta> = {
   'node-ts': { label: 'Node.js (TypeScript)', description: 'Fastify 5 with end-to-end types.' },
   'python-fastapi': {
     label: 'Python (FastAPI)',
-    description: 'FastAPI with Pydantic models.',
-    comingIn: 'P3',
+    description: 'FastAPI with Pydantic models, uv and ruff.',
   },
   'go-gin': { label: 'Go (Gin)', description: 'Gin with generated OpenAPI.', comingIn: 'P3' },
 };

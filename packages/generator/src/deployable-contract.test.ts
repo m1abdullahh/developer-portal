@@ -19,7 +19,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
+import { apiOnlyPythonSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
 import { parse, parseAllDocuments } from 'yaml';
 import { createRegistry } from './recipes/index.js';
 import { runPipeline } from './pipeline.js';
@@ -53,6 +53,19 @@ const CASES = [
     dockerfile: 'Dockerfile',
     // The route file's location *is* the path under the App Router, so its existence is the claim.
     serves: 'app/api/health/route.ts',
+  },
+  {
+    /*
+     * The case that proves the selection rule is a lookup rather than a guess. `deployableRecipeId`
+     * returned the literal `ops.container.node-api` for any spec with an API layer, so this spec
+     * would have rendered a chart routing to 3001 and probing an image listening on 8000 — and the
+     * five assertions below are precisely the ones that would have caught it.
+     */
+    name: 'python-api',
+    recipeId: 'ops.container.python-api',
+    spec: apiOnlyPythonSpec({ meta: { slug: 'deployable-python' } }),
+    dockerfile: 'Dockerfile',
+    serves: 'app/routes/health.py',
   },
   {
     name: 'spa-nginx',
@@ -93,6 +106,7 @@ describe('the registry is complete', () => {
       'ops.container.next',
       'ops.container.node-api',
       'ops.container.nuxt',
+      'ops.container.python-api',
       'ops.container.spa-nginx',
     ]);
   });
@@ -172,7 +186,10 @@ describe.each(CASES)('$name', ({ spec, dockerfile, serves }) => {
 describe('the nginx image, whose every value differs from distroless', () => {
   // Called out separately because it is the case the old ternary got wrong in four ways at once,
   // and because "the second framework works too" is the whole claim of P2.
-  const spa = CASES[2].spec;
+  // Looked up by name rather than by index. This was `CASES[2]`, which silently became the Python
+  // case the moment one was inserted above it — and every assertion below would still have passed,
+  // against the wrong image.
+  const spa = CASES.find((c) => c.name === 'spa-nginx')!.spec;
 
   it('listens on 8080 in nginx.conf, the Dockerfile and the chart alike', async () => {
     const files = await generate(spa);

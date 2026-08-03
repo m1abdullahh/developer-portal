@@ -121,7 +121,34 @@ export function uiOnlyVercelSpec(override: DeepPartial<ProjectSpec> = {}): Proje
   );
 }
 
-/** API-only Go service — exercises the non-Node runtime path with no UI. */
+/**
+ * API-only FastAPI service — the non-Node runtime path with no UI.
+ *
+ * This is the fixture the pipeline-level contract tests run against. It replaced `apiOnlyGoSpec`
+ * in that role, and the reason is worth recording: `go-gin` has no recipe, so generating that
+ * fixture produced a repository containing a Helm chart, two CI workflows, four ArgoCD manifests
+ * and **no source code whatsoever**. Every contract test passed on it, and the golden snapshot
+ * recorded the empty result as correct — a hollow repo is hard to distinguish from a small one
+ * when nothing asserts that the runtime emitted anything.
+ *
+ * The Go fixture stays exported for the layout tests, which are about path prefixes and need no
+ * recipes at all, and it returns to this role when the runtime lands.
+ */
+export function apiOnlyPythonSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
+  return spineSpec(
+    merge(
+      {
+        meta: { slug: 'acme-ledger-api', deploymentTarget: 'onprem-k8s' },
+        ui: null,
+        api: { runtime: 'python-fastapi', paradigm: 'rest', database: 'postgres', orm: 'sqlmodel' },
+        ops: { cicd: { registry: 'ghcr' } },
+      } as DeepPartial<ProjectSpec>,
+      override,
+    ),
+  );
+}
+
+/** API-only Go service. Awaiting `api.runtime.go-gin`; see apiOnlyPythonSpec for why. */
 export function apiOnlyGoSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
   return spineSpec(
     merge(

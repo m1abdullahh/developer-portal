@@ -93,6 +93,67 @@ function collectGeneratedPins() {
   return pins;
 }
 
+/**
+ * The PyPI half of the same manifest.
+ *
+ * Parsed separately from GENERATED_VERSIONS and checked against a different registry, because a
+ * Python pin resolved against npm is worse than an unchecked one: `httpx`, `ruff` and `uvicorn`
+ * all exist on npm as unrelated packages, so the check would pass while pinning the wrong
+ * software. PEP 440 also allows versions semver rejects (`1.0.post1`, `2.0rc1`), hence the
+ * separate grammar.
+ */
+const PEP440 = /^\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$/;
+
+function collectPythonPins() {
+  const file = path.join(ROOT, 'packages', 'core', 'src', 'versions.ts');
+  if (!existsSync(file)) return [];
+
+  const source = readFileSync(file, 'utf8');
+  const start = source.indexOf('PYTHON_VERSIONS = {');
+  if (start === -1) return [];
+  const body = source.slice(start, source.indexOf('} as const', start));
+
+  const pins = [];
+  // Uppercase is allowed in the name class because PyPI distribution names are not lowercase by
+  // rule — `PyJWT` is the published name. PEP 503 normalisation makes the lookup case-insensitive,
+  // but a lowercase-only pattern here would skip the entry entirely and check nothing.
+  for (const match of body.matchAll(/^\s+'?([A-Za-z0-9._-]+)'?:\s*'([^']+)',/gm)) {
+    const [, name, version] = match;
+    if (!PEP440.test(version)) continue;
+    pins.push({ name, version, registry: 'pypi', sources: ['packages/core/src/versions.ts'] });
+  }
+
+  if (pins.length === 0) {
+    throw new Error(
+      'Parsed no versions out of PYTHON_VERSIONS. The manifest format changed and this parser ' +
+        'needs updating — failing rather than reporting a vacuous pass.',
+    );
+  }
+  return pins;
+}
+
+/**
+ * Asks PyPI directly rather than shelling out to pip.
+ *
+ * `pip index versions` requires pip, a Python interpreter and a network resolver on the runner;
+ * the JSON API needs none of those, and the `versions` job deliberately runs on a bare checkout.
+ */
+async function resolvesOnPypi(name, version) {
+  try {
+    const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(name)}/json`, {
+      headers: { accept: 'application/json' },
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    // Present in `releases` AND not yanked. A yanked release still appears in the index and still
+    // installs when pinned exactly, which is precisely the case this check exists to catch.
+    const files = body.releases?.[version];
+    return Array.isArray(files) && files.length > 0 && !files.every((f) => f.yanked);
+  } catch {
+    return false;
+  }
+}
+
 function resolves(name, version) {
   try {
     const out = execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
@@ -108,16 +169,23 @@ function resolves(name, version) {
 
 const ownPins = collectPins();
 const generatedPins = collectGeneratedPins();
-const pins = [...ownPins, ...generatedPins];
+const pythonPins = collectPythonPins();
+const pins = [...ownPins, ...generatedPins, ...pythonPins];
 
 console.log(
   `Checking ${pins.length} exactly-pinned dependencies ` +
-    `(${ownPins.length} in this repository, ${generatedPins.length} emitted into projects)...\n`,
+    `(${ownPins.length} in this repository, ${generatedPins.length} emitted into projects, ` +
+    `${pythonPins.length} on PyPI)...\n`,
 );
 
 const failures = [];
 for (const pin of pins) {
-  if (resolves(pin.name, pin.version)) {
+  const ok =
+    pin.registry === 'pypi'
+      ? await resolvesOnPypi(pin.name, pin.version)
+      : resolves(pin.name, pin.version);
+
+  if (ok) {
     console.log(`  ok    ${pin.name}@${pin.version}`);
   } else {
     console.log(`  FAIL  ${pin.name}@${pin.version}  (${pin.sources.join(', ')})`);

@@ -15,9 +15,30 @@ import { templatePath } from '@idp/templates';
 import { dependencyMap, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
+import { registerRuntimeContract } from '../runtime-contract.js';
 import type { Recipe } from '../types.js';
 
 export const NODE_TS_RECIPE_ID = 'api.runtime.node-ts';
+
+/*
+ * `manifestMarker: null` is the load-bearing field. The merge stage already owns package.json and
+ * merges every recipe's `packageJson()` delta into it structurally, resolving version conflicts and
+ * reporting them. A recipe that also inserted dependencies through a marker would be a second
+ * writer to the same file, and the two would disagree silently. The runtimes with no such merger
+ * declare a marker instead; this one declares that it must not be used.
+ */
+registerRuntimeContract('node-ts', {
+  recipeId: NODE_TS_RECIPE_ID,
+  language: 'ts',
+  serverFile: 'src/server.ts',
+  envFile: 'src/config/env.ts',
+  manifestFile: 'package.json',
+  manifestMarker: null,
+  policyPath: 'src/lib/permissions.ts',
+  containerRecipeId: 'ops.container.node-api',
+  port: 3001,
+  devCommand: 'npm run dev',
+});
 
 export const nodeTsRecipe: Recipe = {
   id: NODE_TS_RECIPE_ID,

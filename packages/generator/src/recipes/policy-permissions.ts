@@ -26,12 +26,27 @@ import { loadTemplateDir } from '../template-loader.js';
 import { frameworkContract, requiresFramework } from '../framework-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
+import { PYTHON_FASTAPI_RECIPE_ID } from './api-python-fastapi.js';
 import type { CodemodOp, Recipe } from '../types.js';
 
 export const API_PERMISSIONS_RECIPE_ID = 'api.policy.permissions';
 export const UI_PERMISSIONS_RECIPE_ID = 'ui.policy.permissions';
+export const PYTHON_PERMISSIONS_RECIPE_ID = 'api.policy.permissions-python';
 
 const TEMPLATE = () => templatePath('api', 'policy', 'permissions');
+
+/**
+ * The same policy in Python.
+ *
+ * A separate template rather than a rendered variant of the TypeScript one, because there is no
+ * useful common subset of the two languages to template over — the type-level machinery
+ * (`as const` unions versus `Literal` + `get_args`) is most of the file.
+ *
+ * What is shared is the thing that matters: the four roles, the five permissions and the matrix
+ * mapping one to the other. `policy-contract.test.ts` parses both files and fails if they
+ * disagree, so "same policy" is checked rather than promised.
+ */
+const PYTHON_TEMPLATE = () => templatePath('api', 'policy', 'permissions-python');
 
 /**
  * Anything that enforces the policy needs it.
@@ -121,6 +136,44 @@ export const apiPermissionsRecipe: Recipe = {
       '',
       'These strings are the Prisma `UserRole` values verbatim — there is deliberately no mapping',
       'between what the database stores and what the policy checks.',
+    ].join('\n'),
+  }),
+};
+
+export const pythonPermissionsRecipe: Recipe = {
+  id: PYTHON_PERMISSIONS_RECIPE_ID,
+  phase: 'feature',
+  layer: 'api',
+  requires: [PYTHON_FASTAPI_RECIPE_ID],
+
+  appliesTo: (spec) => spec.api?.runtime === 'python-fastapi' && policyNeeded(spec),
+
+  files: (ctx) =>
+    loadTemplateDir(PYTHON_TEMPLATE(), ctx, PYTHON_PERMISSIONS_RECIPE_ID, {
+      policyPath: 'app/lib/permissions.py',
+    }),
+
+  readme: () => ({
+    order: README_ORDER.backend,
+    heading: 'Roles and permissions',
+    body: [
+      '`app/lib/permissions.py` is the single definition of who may do what. When the project also',
+      'has a browser app, the same policy is emitted there in TypeScript — two enforcement points,',
+      'one policy, checked identical by the generator’s own test suite rather than by convention.',
+      '',
+      '| Role | Permissions |',
+      '| --- | --- |',
+      '| `viewer` | `read` |',
+      '| `editor` | `read`, `write`, `delete` |',
+      '| `admin` | everything |',
+      '| `owner` | everything |',
+      '',
+      '`owner` and `admin` hold the same permissions. The difference is structural: an organisation',
+      'must always have at least one active owner, and the API refuses any change that would remove',
+      'the last one.',
+      '',
+      'These strings are the database’s role values verbatim — there is deliberately no mapping',
+      'between what is stored and what the policy checks.',
     ].join('\n'),
   }),
 };

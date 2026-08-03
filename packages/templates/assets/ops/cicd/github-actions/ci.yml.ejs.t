@@ -72,6 +72,13 @@ jobs:
 <% } -%>
     steps:
       - uses: actions/checkout@v4
+<%
+/* Branching on the runtime rather than templating a command list out of the contract, because
+   these are not four variations on one job — they are three different toolchains with different
+   setup actions, different cache keys and a different number of steps. Flattening that into a
+   data structure would hide the differences from whoever has to debug the workflow. */
+-%>
+<% if (runtime.language === 'ts') { -%>
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -89,6 +96,29 @@ jobs:
       - run: npm run typecheck
       - run: npm run test --if-present
       - run: npm run build
+<% } else if (runtime.language === 'python') { -%>
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: '<%= uvVersion %>'
+          enable-cache: true
+      # Pinned to the interpreter the runtime image ships, so CI cannot pass on a version the
+      # container will not run. `.python-version` is committed for exactly this reason.
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: '<%= spec.ui ? "apps/api/" : "" %>.python-version'
+      # A freshly scaffolded repository has no uv.lock until your first `uv sync`, so `--frozen`
+      # cannot run on the scaffold commit. This gets stricter on its own once you commit one.
+      - name: Install
+        run: |
+          if [ -f uv.lock ]; then uv sync --frozen --all-groups; else uv sync --all-groups; fi
+      # `ruff format --check`, not `ruff format`: CI must report a formatting drift, not silently
+      # fix it in a checkout nobody keeps.
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+      # No build step. There is no compilation, and `uv build` would produce a wheel the container
+      # never installs — the image copies the venv and the source directly.
+<% } -%>
 <% } -%>
 
 <% if (spec.ops.container.strategy !== 'none') { -%>

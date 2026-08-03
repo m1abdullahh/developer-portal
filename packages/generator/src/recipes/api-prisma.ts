@@ -30,8 +30,16 @@ export const prismaRecipe: Recipe = {
     spec.api.orm === 'prisma' &&
     spec.api.runtime === 'node-ts',
 
-  files: (ctx) =>
-    loadTemplateDir(templatePath('api', 'db', 'postgres-prisma'), ctx, PRISMA_RECIPE_ID),
+  files: async (ctx) => [
+    ...(await loadTemplateDir(templatePath('api', 'db', 'postgres-prisma'), ctx, PRISMA_RECIPE_ID)),
+    // The local Postgres service, shared with the other Postgres ORM recipes. Exactly one of them
+    // applies to a given spec, so the same destination path is never claimed twice.
+    ...(await loadTemplateDir(
+      templatePath('api', 'db', 'postgres-compose'),
+      ctx,
+      PRISMA_RECIPE_ID,
+    )),
+  ],
 
   packageJson: () => ({
     dependencies: dependencyMap(['@prisma/client', '@prisma/adapter-pg', 'pg']),

@@ -12,7 +12,7 @@
  */
 
 import { templatePath } from '@idp/templates';
-import type { ProjectSpec } from '@idp/core';
+import { pythonVersion, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { registerDeployableContract } from '../deployable-contract.js';
 import { README_ORDER } from '../merge/readme.js';
@@ -20,6 +20,7 @@ import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
 import { VITE_REACT_RECIPE_ID } from './ui-vite-react.js';
 import { NUXT_RECIPE_ID } from './ui-nuxt.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
+import { PYTHON_FASTAPI_RECIPE_ID, PYTHON_PORT } from './api-python-fastapi.js';
 import type { Recipe } from '../types.js';
 
 const containersEnabled = (spec: ProjectSpec): boolean => spec.ops.container.strategy !== 'none';
@@ -238,6 +239,66 @@ export const containerNodeApiRecipe: Recipe = {
       '',
       'Dependency install is a separate stage from the build so `node_modules` layers cache',
       'across source-only changes rather than reinstalling on every commit.',
+    ].join('\n'),
+  }),
+};
+
+export const CONTAINER_PYTHON_API_RECIPE_ID = 'ops.container.python-api';
+
+/*
+ * Same probe paths as the Node API and a different port, which is exactly the case this contract
+ * exists for. Before the runtime contract existed, `deployableRecipeId` returned the Node
+ * container for any spec with an API layer — so a FastAPI project would have rendered a chart
+ * routing to 3001 and probing an image listening on 8000. The chart renders, kubeconform passes,
+ * `kubectl apply` succeeds, and the pod never goes Ready.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_PYTHON_API_RECIPE_ID,
+  port: PYTHON_PORT,
+  livenessPath: '/health',
+  readinessPath: '/ready',
+  runAsUser: 65532,
+  writablePaths: ['/tmp'],
+});
+
+export const containerPythonApiRecipe: Recipe = {
+  id: CONTAINER_PYTHON_API_RECIPE_ID,
+  phase: 'integration',
+  layer: 'api',
+  requires: [PYTHON_FASTAPI_RECIPE_ID],
+
+  appliesTo: (spec) => containersEnabled(spec) && spec.api?.runtime === 'python-fastapi',
+
+  files: (ctx) =>
+    loadTemplateDir(
+      templatePath('ops', 'container', 'python-api'),
+      ctx,
+      CONTAINER_PYTHON_API_RECIPE_ID,
+      { runtime: { port: PYTHON_PORT }, uvVersion: pythonVersion('uv') },
+    ),
+
+  readme: () => ({
+    order: README_ORDER.deployment,
+    heading: 'Container (api)',
+    body: [
+      '```bash',
+      'docker build -t api:local apps/api    # or . in an API-only project',
+      '```',
+      '',
+      'Multi-stage, ending on `gcr.io/distroless/python3-debian12:nonroot` — no shell, no pip,',
+      'running as UID 65532 with a read-only root filesystem in Kubernetes.',
+      '',
+      'The builder is pinned to **python:3.11-slim-bookworm** to match the interpreter in the',
+      'distroless image. This is not a preference: a virtualenv built against a different minor',
+      'version copies across fine and then fails to import any package with a compiled extension,',
+      'because the ABI tag in the `.so` filename no longer matches. The failure appears at',
+      'container start, never at build time.',
+      '',
+      '`PYTHONPATH` points at the venv’s `site-packages` because there is no shell to activate a',
+      'virtualenv and no `python` on `PATH` to honour its `pyvenv.cfg`.',
+      '',
+      'Dependencies install from `uv.lock` with `--frozen`, which fails rather than silently',
+      're-resolving when the lockfile is out of date with `pyproject.toml`. Commit `uv.lock`.',
     ].join('\n'),
   }),
 };

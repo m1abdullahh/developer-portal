@@ -32,3 +32,4 @@ export * from './layout.js';
 export * from './framework-contract.js';
 export * from './styling-contract.js';
 export * from './deployable-contract.js';
+export * from './runtime-contract.js';

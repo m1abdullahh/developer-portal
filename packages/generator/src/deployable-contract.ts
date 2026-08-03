@@ -24,6 +24,7 @@
  */
 
 import type { ProjectSpec } from '@idp/core';
+import { runtimeContract } from './runtime-contract.js';
 
 export interface DeployableContract {
   /** The container recipe's id — recorded so a mismatched registration is traceable. */
@@ -87,7 +88,14 @@ export class UnknownDeployableError extends Error {
  * the test suite can assert the selection rule directly rather than through rendered YAML.
  */
 export function deployableRecipeId(spec: ProjectSpec): string {
-  if (spec.api) return 'ops.container.node-api';
+  /*
+   * Asked, not assumed. This line returned the literal `ops.container.node-api` for any spec with
+   * an API layer, which was true while there was one runtime and silently wrong the moment there
+   * were three: a FastAPI project would have rendered a chart probing `/health` on port 3001
+   * against an image serving `/health` on 8000, and every check in this repository would have
+   * passed. The runtime contract is the thing that actually knows.
+   */
+  if (spec.api) return runtimeContract(spec).containerRecipeId;
   if (spec.ui?.framework === 'vite-react') return 'ops.container.spa-nginx';
   if (spec.ui?.framework === 'nextjs-app') return 'ops.container.next';
   if (spec.ui?.framework === 'nuxt') return 'ops.container.nuxt';

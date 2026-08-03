@@ -32,9 +32,16 @@ import { uiUserManagementRecipe } from './ui-module-user-management.js';
 import { uiSettingsRbacRecipe } from './ui-module-settings-rbac.js';
 import { uiStripeBillingRecipe } from './ui-module-stripe-billing.js';
 import { nodeTsRecipe } from './api-node-ts.js';
-import { restRecipe } from './api-rest.js';
+import { pythonFastapiRecipe } from './api-python-fastapi.js';
+import { restRecipe, restPythonRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
-import { apiPermissionsRecipe, uiPermissionsRecipe } from './policy-permissions.js';
+import { sqlmodelRecipe } from './api-sqlmodel.js';
+import {
+  apiPermissionsRecipe,
+  pythonPermissionsRecipe,
+  uiPermissionsRecipe,
+} from './policy-permissions.js';
+import { PYTHON_MIDDLEWARE_RECIPES } from './api-middleware-python.js';
 import { apiUserManagementRecipe } from './api-module-user-management.js';
 import { apiSettingsRbacRecipe } from './api-module-settings-rbac.js';
 import { apiStripeBillingRecipe } from './api-module-stripe-billing.js';
@@ -43,6 +50,7 @@ import {
   containerNextRecipe,
   containerNuxtRecipe,
   containerNodeApiRecipe,
+  containerPythonApiRecipe,
   containerSpaNginxRecipe,
 } from './ops-container.js';
 import { helmRecipe } from './ops-helm.js';
@@ -69,13 +77,16 @@ export * from './ui-module-user-management.js';
 export * from './ui-module-settings-rbac.js';
 export * from './ui-module-stripe-billing.js';
 export * from './api-node-ts.js';
+export * from './api-python-fastapi.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
+export * from './api-sqlmodel.js';
 export * from './policy-permissions.js';
 export * from './api-module-user-management.js';
 export * from './api-module-settings-rbac.js';
 export * from './api-module-stripe-billing.js';
 export * from './api-middleware.js';
+export * from './api-middleware-python.js';
 export * from './ops-container.js';
 export * from './ops-helm.js';
 export * from './ops-gitops.js';
@@ -109,19 +120,30 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   uiSettingsRbacRecipe,
   uiStripeBillingRecipe,
   nodeTsRecipe,
+  // The second runtime. Exactly one of these applies to any spec — `appliesTo` keys on
+  // `api.runtime` — so they never collide despite both owning the server file for their language.
+  pythonFastapiRecipe,
   restRecipe,
+  restPythonRecipe,
   prismaRecipe,
+  sqlmodelRecipe,
   // The role and permission policy, emitted into whichever layers enforce it.
   apiPermissionsRecipe,
+  pythonPermissionsRecipe,
   uiPermissionsRecipe,
   apiUserManagementRecipe,
   apiSettingsRbacRecipe,
   apiStripeBillingRecipe,
   ...MIDDLEWARE_RECIPES,
+  // The same five options for FastAPI. Separate recipes rather than a branch, because only the
+  // option names and the resulting behaviour are shared — see the note in that module about
+  // Starlette applying middleware in the reverse of the order it is added.
+  ...PYTHON_MIDDLEWARE_RECIPES,
   containerNextRecipe,
   containerNuxtRecipe,
   containerSpaNginxRecipe,
   containerNodeApiRecipe,
+  containerPythonApiRecipe,
   helmRecipe,
   argocdRecipe,
   githubActionsRecipe,

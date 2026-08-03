@@ -96,21 +96,27 @@ describe('the P1 spine is never marked as coming later', () => {
 
 describe('comingSoonReason', () => {
   /*
-   * `python-fastapi`, not `nuxt`.
+   * `go-gin`, and this target has now moved twice.
    *
-   * This test named Nuxt for the whole of P2, because it was the canonical unavailable option.
-   * Nuxt now ships — three Vue styling systems, four state options and all four page modules —
-   * so asserting it is still "coming in P2" would have failed, correctly. Retargeting it rather
-   * than deleting it keeps the helper covered; the runtimes are genuinely P3 work.
+   * It named Nuxt for the whole of P2, then `python-fastapi` when Nuxt shipped. FastAPI now ships
+   * too — runtime, five middleware, REST/OpenAPI, SQLModel with Alembic, a distroless image and a
+   * CI workflow that runs uv rather than npm — so asserting it is still "coming in P3" would have
+   * failed, correctly. Go is the remaining one.
+   *
+   * The pattern is worth noticing: this test moves every time an option graduates, which is the
+   * point. A coming-soon note nobody re-examines is how a working feature stays unselectable.
    */
   it('names the phase so the note is actionable', () => {
-    const reason = comingSoonReason(API_RUNTIMES['python-fastapi']);
+    const reason = comingSoonReason(API_RUNTIMES['go-gin']);
     expect(reason).toContain('P3');
   });
 
-  it('says nothing for an option that actually ships', () => {
+  it.each([
+    ['nuxt', UI_FRAMEWORKS.nuxt],
+    ['python-fastapi', API_RUNTIMES['python-fastapi']],
+  ])('says nothing for %s, which actually ships', (_name, meta) => {
     // The inverse, and the failure mode that matters more: a note telling users a working
     // feature is unavailable is worse than a missing note, because nobody selects it to find out.
-    expect(comingSoonReason(UI_FRAMEWORKS.nuxt)).toBeUndefined();
+    expect(comingSoonReason(meta)).toBeUndefined();
   });
 });

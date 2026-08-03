@@ -10,9 +10,10 @@
  */
 
 import { templatePath } from '@idp/templates';
-import { targetUsesKubernetes, type ProjectSpec } from '@idp/core';
+import { pythonVersion, targetUsesKubernetes, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
+import { runtimeContract } from '../runtime-contract.js';
 import type { Recipe } from '../types.js';
 
 export const ARGOCD_RECIPE_ID = 'ops.gitops.argocd';
@@ -68,8 +69,23 @@ export const githubActionsRecipe: Recipe = {
   appliesTo: (spec: ProjectSpec) =>
     spec.ops.cicd.lint || spec.ops.cicd.test || spec.ops.cicd.buildPush,
 
+  /*
+   * The API job needs the runtime contract, because "install, lint, test, build" is four
+   * completely different commands depending on the language and the workflow previously hardcoded
+   * the Node ones. A generated FastAPI project's CI ran `npm ci` against a repository with no
+   * package.json — every step failed, on the very first push, in the repository the portal had
+   * just provisioned for someone.
+   *
+   * Passed as `null` for a UI-only project rather than omitted: the template guards on `spec.api`
+   * before touching it, and an undefined variable in EJS throws at render time instead.
+   */
   files: (ctx) =>
-    loadTemplateDir(templatePath('ops', 'cicd', 'github-actions'), ctx, GITHUB_ACTIONS_RECIPE_ID),
+    loadTemplateDir(templatePath('ops', 'cicd', 'github-actions'), ctx, GITHUB_ACTIONS_RECIPE_ID, {
+      runtime: ctx.spec.api ? runtimeContract(ctx.spec) : null,
+      // setup-uv pins the same version the Dockerfile copies, so CI and the image resolve
+      // dependencies with identical resolver behaviour.
+      uvVersion: pythonVersion('uv'),
+    }),
 
   readme: (ctx) => ({
     order: README_ORDER.deployment,
