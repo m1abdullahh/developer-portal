@@ -17,6 +17,7 @@ import { nuxtRecipe } from './ui-nuxt.js';
 import { tailwindShadcnRecipe } from './ui-tailwind-shadcn.js';
 import { cssModulesRecipe } from './ui-css-modules.js';
 import { cssModulesVueRecipe } from './ui-css-modules-vue.js';
+import { tailwindShadcnVueRecipe } from './ui-tailwind-shadcn-vue.js';
 import { muiRecipe } from './ui-mui.js';
 import { vuetifyRecipe } from './ui-vuetify.js';
 import { zustandRecipe } from './ui-zustand.js';
@@ -50,6 +51,7 @@ export * from './ui-nuxt.js';
 export * from './ui-tailwind-shadcn.js';
 export * from './ui-css-modules.js';
 export * from './ui-css-modules-vue.js';
+export * from './ui-tailwind-shadcn-vue.js';
 export * from './ui-mui.js';
 export * from './ui-vuetify.js';
 export * from './ui-zustand.js';
@@ -80,6 +82,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   cssModulesRecipe,
   // The same UiStyling value in the Vue family — see the styling contract's registry key.
   cssModulesVueRecipe,
+  tailwindShadcnVueRecipe,
   muiRecipe,
   // What the `mui` option means for a Vue framework (doc 00 §5.2).
   vuetifyRecipe,

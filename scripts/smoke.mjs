@@ -148,6 +148,20 @@ const CASES = {
   },
 
   /*
+   * Tailwind completes the set: with this, every styling option the wizard offers has a Vue
+   * implementation, which is the bar for offering Nuxt at all. It is also the only case that
+   * compiles the @tailwindcss/vite wiring.
+   */
+  'nuxt-tailwind': {
+    description: 'Nuxt + Tailwind — the third Vue styling system, completing the set',
+    fixture: 'uiOnlyVercelSpec',
+    override: {
+      ui: { framework: 'nuxt', styling: 'tailwind-shadcn' },
+      meta: { slug: 'smoke-nuxt-tailwind' },
+    },
+  },
+
+  /*
    * Vuetify is the expensive one, and the counterpart to `styling-mui` in the React family: the
    * only Vue styling system wrapping a third-party component library, so it is where a primitive
    * API that cannot actually be implemented shows up. MUI forced a redesign of `Select` when the

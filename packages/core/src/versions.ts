@@ -62,6 +62,10 @@ export const GENERATED_VERSIONS = {
 
   // ── UI: styling ───────────────────────────────────────────────────────────
   tailwindcss: '4.3.3',
+  // Tailwind 4 dropped its PostCSS-only setup: Next uses '@tailwindcss/postcss', and anything on
+  // Vite — including Nuxt — uses this. Same version as the compiler itself, which Tailwind ships
+  // in lockstep. Verified on 2026-08-01.
+  '@tailwindcss/vite': '4.3.3',
   // MUI 9 peers React ^19 and both emotion packages, which are its default style engine.
   // `@mui/material-pigment-css` is also listed as a peer but is optional — it is the alternative
   // zero-runtime engine, and installing both would ship two styling systems in one project.
