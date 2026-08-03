@@ -3,7 +3,7 @@
 a03b9d440fb1  .github/workflows/ci.yml
 c7d2f108404f  .gitignore
 eab0556a456e  app/api/health/route.ts
-de2c840d0e8c  app/globals.css
+1c349eb60c1b  app/globals.css
 fa2ff1438e22  app/layout.tsx
 7af96e3e2993  app/page.tsx
 6ced0c15ca88  components/providers/StoreProvider.tsx

@@ -24,6 +24,20 @@ to: <%= framework.stylesheetPath %>
     --destructive-foreground: 0 0% 98%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
+
+    /*
+     * These four were referenced by the components long before they were declared here.
+     *
+     * An undefined custom property makes `hsl(var(--card))` an invalid value, and the browser
+     * drops the whole declaration — so Dialog rendered with no background over its own backdrop
+     * and Badge's success, warning and accent tones lost their fill entirely. Nothing failed:
+     * the build succeeded, the page booted, and a transparent badge reads as "minimal" rather
+     * than broken. `token-contract.test.ts` now checks every var() against what is declared.
+     */
+    --card: 0 0% 100%;
+    --accent: 217 91% 60%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
   }
 
   .dark {
@@ -38,6 +52,10 @@ to: <%= framework.stylesheetPath %>
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --ring: 240 4.9% 83.9%;
+
+    /* Only the ones that actually differ in dark mode. Accent, success and warning are chosen to
+       hold their contrast against both backgrounds, so repeating them would be noise. */
+    --card: 240 6% 10%;
   }
 
   * {
