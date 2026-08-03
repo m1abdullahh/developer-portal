@@ -61,8 +61,9 @@ export const UI_FRAMEWORKS: Record<UiFramework, OptionMeta> = {
   },
   nuxt: {
     label: 'Nuxt 4',
-    description: 'Vue 3. State and styling options are substituted for their Vue equivalents.',
-    comingIn: 'P2',
+    description:
+      'Vue 3 with server rendering. Styling and state options are substituted for their Vue ' +
+      'equivalents — Vuetify for MUI, Pinia for Zustand and Redux Toolkit.',
   },
 };
 

@@ -95,8 +95,22 @@ describe('the P1 spine is never marked as coming later', () => {
 });
 
 describe('comingSoonReason', () => {
+  /*
+   * `python-fastapi`, not `nuxt`.
+   *
+   * This test named Nuxt for the whole of P2, because it was the canonical unavailable option.
+   * Nuxt now ships — three Vue styling systems, four state options and all four page modules —
+   * so asserting it is still "coming in P2" would have failed, correctly. Retargeting it rather
+   * than deleting it keeps the helper covered; the runtimes are genuinely P3 work.
+   */
   it('names the phase so the note is actionable', () => {
-    const reason = comingSoonReason(UI_FRAMEWORKS.nuxt);
-    expect(reason).toContain('P2');
+    const reason = comingSoonReason(API_RUNTIMES['python-fastapi']);
+    expect(reason).toContain('P3');
+  });
+
+  it('says nothing for an option that actually ships', () => {
+    // The inverse, and the failure mode that matters more: a note telling users a working
+    // feature is unavailable is worse than a missing note, because nobody selects it to find out.
+    expect(comingSoonReason(UI_FRAMEWORKS.nuxt)).toBeUndefined();
   });
 });

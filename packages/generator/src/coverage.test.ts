@@ -33,7 +33,7 @@ import { runPipeline } from './pipeline.js';
  * agree with whatever the code happens to do, which is the one thing a contract test must not do.
  */
 const IMPLEMENTED = {
-  frameworks: ['nextjs-app', 'vite-react'],
+  frameworks: ['nextjs-app', 'vite-react', 'nuxt'],
   stylings: ['tailwind-shadcn', 'css-modules', 'mui'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
   runtimes: ['node-ts'],
@@ -50,26 +50,44 @@ const IMPLEMENTED = {
 /**
  * Options whose base recipe ships but whose *option* is not yet complete.
  *
- * `nuxt` has a framework recipe that installs, lints, typechecks, builds and boots — verified by
- * the `nuxt` smoke case. What it does not have is a design system, a state library or a single
- * page module: every one of those recipes declines for a Vue framework. Choosing Nuxt in the
- * wizard today would produce a working shell with no primitives and no store.
+ * Empty, and worth keeping empty rather than deleting. `nuxt` lived here for the whole of P2.4:
+ * the framework recipe built and booted long before it had a design system, a state library or a
+ * single page module, and shipping it as "implemented" then would have let someone pick it and
+ * receive a working shell with no primitives and no store.
  *
- * So it stays disabled in the wizard and out of `IMPLEMENTED` here. This list is the difference
- * between "we decided not to offer this yet" and "someone forgot", which is the whole reason the
- * ledger is written by hand rather than derived from the registry — the check below failed the
- * moment the recipe landed, which is exactly what it is for.
+ * It graduated once all three Vue styling systems, all four state options and all four page
+ * modules landed — each smoke-verified. The list is the difference between "we decided not to
+ * offer this yet" and "someone forgot", which is why the ledger is written by hand rather than
+ * derived from the registry.
  */
 const PARTIAL = {
-  frameworks: ['nuxt'],
+  frameworks: [] as readonly string[],
 } as const;
 
-/** Page module name to the recipe ids that implement it. */
+/**
+ * Page module name to the recipe ids that implement it.
+ *
+ * A module is one entry here however many recipes back it. `userManagement` needs two per family
+ * because a recipe declares a single layer; the Vue implementations are separate recipes again,
+ * because a `.vue` page and a `.tsx` page cannot be the same file.
+ */
 const MODULE_RECIPES: Record<string, readonly string[]> = {
-  authLayouts: ['ui.module.auth-layouts'],
-  userManagement: ['ui.module.user-management', 'api.module.user-management'],
-  settingsRbac: ['ui.module.settings-rbac', 'api.module.settings-rbac'],
-  stripeBilling: ['ui.module.stripe-billing', 'api.module.stripe-billing'],
+  authLayouts: ['ui.module.auth-layouts', 'ui.module.auth-layouts-vue'],
+  userManagement: [
+    'ui.module.user-management',
+    'ui.module.user-management-vue',
+    'api.module.user-management',
+  ],
+  settingsRbac: [
+    'ui.module.settings-rbac',
+    'ui.module.settings-rbac-vue',
+    'api.module.settings-rbac',
+  ],
+  stripeBilling: [
+    'ui.module.stripe-billing',
+    'ui.module.stripe-billing-vue',
+    'api.module.stripe-billing',
+  ],
 };
 
 const registry = createRegistry();

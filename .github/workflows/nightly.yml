@@ -1,0 +1,66 @@
+name: Nightly
+
+# The T2 tier from doc 08 §4. Too slow for a PR — twelve full install/build/boot cycles — and too
+# valuable to run only before a release, because a composition bug introduced on Monday should not
+# wait until Friday to surface.
+on:
+  schedule:
+    # 02:00 UTC. Late enough that the day's merges are in, early enough that a failure is waiting
+    # when people start rather than landing mid-afternoon.
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  NUXT_TELEMETRY_DISABLED: 1
+  HUSKY: 0
+
+jobs:
+  # The P2 gate: every framework × styling × state pair installs, builds and boots.
+  #
+  # Pairwise rather than exhaustive — 12 runs instead of 36. `scripts/pairwise.mjs` computes the
+  # selection and prints a proof that every pair is covered; it fails if one is missed, so the
+  # reduction cannot silently become a gap.
+  pairwise:
+    name: T2 pairwise matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The harness imports the built packages rather than the sources.
+      - name: Build
+        run: npm run build
+
+      # Cheap and first: if a combination cannot even generate, there is no point installing
+      # anything. This also prints the coverage proof into the log.
+      - name: Generate every combination
+        run: node scripts/pairwise.mjs
+
+      - name: Install, build and boot each one
+        run: node scripts/pairwise.mjs --smoke
+
+  # Version drift is a nightly concern rather than a PR one: a pin that was fine at merge can be
+  # unpublished later, and the failure belongs to nobody's pull request.
+  versions:
+    name: Version manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check pinned versions resolve
+        run: node scripts/check-versions.mjs

@@ -26,7 +26,16 @@ export default tseslint.config(
 
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  ...pluginVue.configs['flat/recommended'],
+  /*
+   * `flat/essential`, not `flat/recommended`.
+   *
+   * The difference between them is almost entirely layout — attributes per line, where a closing
+   * bracket goes, line breaks inside an element. Prettier already decides all of that and formats
+   * every file this project ships, so `recommended` produces a stream of warnings telling you the
+   * formatter is wrong. `essential` keeps the rules that catch real mistakes: a missing `:key`, a
+   * mutated prop, an invalid `v-for`.
+   */
+  ...pluginVue.configs['flat/essential'],
 
   {
     files: ['**/*.vue'],

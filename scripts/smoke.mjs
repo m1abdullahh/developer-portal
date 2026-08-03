@@ -219,6 +219,32 @@ const CASES = {
   },
 
   /*
+   * userManagement and stripeBilling on Nuxt, together (P2.4).
+   *
+   * Both at once on purpose: they each contribute the same `apiUrl` key to the runtime-config
+   * marker, and a duplicated property in that object literal is a TypeScript error rather than
+   * something the generator would notice. Nothing else exercises two page modules competing for
+   * one marker.
+   */
+  'module-nuxt': {
+    description: 'all four page modules on Nuxt — runtime config, tables, dialogs',
+    fixture: 'spineSpec',
+    override: {
+      ui: {
+        framework: 'nuxt',
+        styling: 'css-modules',
+        modules: {
+          authLayouts: true,
+          userManagement: true,
+          stripeBilling: true,
+          settingsRbac: true,
+        },
+      },
+      meta: { slug: 'smoke-module-nuxt' },
+    },
+  },
+
+  /*
    * The userManagement page module (P2.5b), on both layers at once.
    *
    * The only case that compiles generated Prisma queries and a page using all eight primitives,
@@ -646,7 +672,30 @@ async function main() {
     return 0;
   }
 
-  const only = argv.includes('--case') ? argv[argv.indexOf('--case') + 1] : null;
+  /*
+   * An ad-hoc case supplied by `scripts/pairwise.mjs`, as JSON.
+   *
+   * The T2 matrix picks its combinations by computing pairwise coverage, so they cannot be
+   * enumerated here — and duplicating install/build/boot inside that script to avoid this hook
+   * would mean two harnesses drifting apart. It registers one case and runs it like any other.
+   */
+  const matrixArg = argv.includes('--matrix-case') ? argv[argv.indexOf('--matrix-case') + 1] : null;
+
+  if (matrixArg) {
+    const { framework, styling, state, slug } = JSON.parse(matrixArg);
+    CASES[slug] = {
+      description: `T2 pairwise — ${framework} / ${styling} / ${state}`,
+      fixture: 'spineSpec',
+      override: { ui: { framework, styling, state }, meta: { slug } },
+    };
+  }
+
+  const only = matrixArg
+    ? Object.keys(CASES).at(-1)
+    : argv.includes('--case')
+      ? argv[argv.indexOf('--case') + 1]
+      : null;
+
   if (only && !CASES[only]) {
     console.error(`Unknown case "${only}". Known: ${Object.keys(CASES).join(', ')}`);
     return 2;

@@ -29,7 +29,14 @@ leave the first full pipeline run until late Week 2.
 
 - [ ] `git init`; `.gitignore`, `.editorconfig`, `.nvmrc`, LICENSE
 - [ ] npm workspaces + Turborepo; `tsconfig.base.json` (strict, `noUncheckedIndexedAccess`)
-- [ ] `packages/config` — shared eslint / prettier / tsconfig presets
+- [~] `packages/config` — shared eslint / prettier / tsconfig presets. **Deliberately not built.**
+  The sharing this was meant to achieve already exists without a package: one root
+  `eslint.config.js` covers every workspace (flat config resolves from the root), one
+  `.prettierrc.json` likewise, and every package `tsconfig.json` is nine lines extending
+  `tsconfig.base.json`. There is no duplication left to remove. A package would add a
+  workspace, a build step and a layer of indirection for zero functional gain — its real value
+  is when presets are published or consumed by other repositories, which is not the case here.
+  Revisit if a second repository needs them.
 - [ ] Scaffold all 7 packages + 2 apps with stub exports so imports resolve
 - [ ] Pin exact dependency versions via `npm view`; record in `docs/VERSIONS.md` and `packages/core/src/versions.ts`
 - [ ] `packages/core`: `ProjectSpec` Zod schema (doc 00 §3) + slug rules + compatibility rules
@@ -117,11 +124,18 @@ it is the schedule's early-warning signal.
 ## P2 — UI Breadth (doc 02)
 
 - [ ] `vite-react` framework recipe (+ nginx SPA container variant)
-- [~] `nuxt` framework recipe + the doc 00 §5.1–5.2 substitution engine — base recipe done and
-  smoke-verified (install, lint, vue-tsc, build, boot) plus a Nitro container and deployable
-  contract. The substitution tables already live in `compatibility.ts`. Still to come: Vuetify,
-  Pinia, vue-query, and the four page modules in Vue — until those land Nuxt stays disabled in
-  the wizard and listed as PARTIAL in the coverage ledger.
+- [x] `nuxt` framework recipe + the doc 00 §5.1–5.2 substitution engine — complete and enabled in
+      the wizard. Framework, Nitro container and deployable contract; all three styling systems
+      (CSS Modules, Vuetify, Tailwind); all four state options collapsing onto three implementations;
+      all four page modules as single-file components. Each smoke-verified.
+
+  Getting there needed three contracts that had quietly assumed React, each found by a real
+  non-React framework rather than by inspection: `providerInstall` (Nuxt installs a store as a
+  module or plugin — nothing wraps `{children}`, and ts-morph cannot parse a `.vue` file at all),
+  the styling contract keyed by **family** (`css-modules` for Vue would have silently overwritten
+  the React registration, and `primitivePath` hardcoded `.tsx`), and `.vue` added to the format
+  stage, which had never formatted a single-file component.
+
 - [ ] Styling: `mui` (React) + Vuetify (Vue); `css-modules` (both) — 8 primitives each
 - [ ] State: `redux-toolkit`, `react-query` (+ companion context store), `context`; Pinia + vue-query
 - [ ] Page modules ×4, each against the primitive API, verified in all 3 styling systems
@@ -132,10 +146,16 @@ it is the schedule's early-warning signal.
       Tailwind and one elsewhere. `styling-api.test.ts` now compares the three declarations.
 - [ ] Wizard: live relabelling for Nuxt, module dependency gating, preview images
 - [ ] BullMQ driver (if Redis has landed) behind the existing interface
-- [ ] Golden snapshots for all new combinations; T2 pairwise matrix live nightly
+- [x] Golden snapshots for all new combinations; T2 pairwise matrix live nightly —
+      `scripts/pairwise.mjs` + `.github/workflows/nightly.yml`. 12 of 36 combinations, every pair
+      covered, with the coverage proof printed and failing if a pair is missed.
 
 **Gate:** every framework × styling × state combination installs, builds and boots in T2.
 Nuxt output contains zero React dependencies.
+
+_Status:_ all 12 pairwise combinations generate cleanly; the install/build/boot half runs nightly.
+Nuxt is out of PARTIAL and enabled in the wizard — three Vue styling systems, four state options
+and all four page modules, each smoke-verified.
 
 ---
 

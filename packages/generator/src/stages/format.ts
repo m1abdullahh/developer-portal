@@ -28,8 +28,13 @@ const PRETTIER_OPTIONS: prettier.Options = {
 /**
  * Extensions Prettier owns. Anything else (Python, Go, Dockerfile, .env) is left alone —
  * those have their own formatters, which run inside the generated project's own tooling.
+ *
+ * `.vue` was missing until the first Vue page module shipped. Prettier handles single-file
+ * components natively, so those files were the only thing this generator emitted unformatted —
+ * and the symptom was 125 layout warnings in a freshly generated project: code that was correct
+ * and looked unmaintained.
  */
-const FORMATTABLE = /\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css|scss|md|ya?ml|html)$/;
+const FORMATTABLE = /\.(ts|tsx|js|jsx|mjs|cjs|json|jsonc|css|scss|md|ya?ml|html|vue)$/;
 
 /**
  * Files Prettier must not touch even though their extension suggests it can.
