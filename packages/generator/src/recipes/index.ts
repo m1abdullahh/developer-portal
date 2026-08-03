@@ -26,6 +26,7 @@ import { reactQueryRecipe } from './ui-react-query.js';
 import { contextRecipe } from './ui-context.js';
 import { VUE_STATE_RECIPES } from './ui-state-vue.js';
 import { authLayoutsRecipe } from './ui-module-auth-layouts.js';
+import { authLayoutsVueRecipe } from './ui-module-auth-layouts-vue.js';
 import { uiUserManagementRecipe } from './ui-module-user-management.js';
 import { uiSettingsRbacRecipe } from './ui-module-settings-rbac.js';
 import { uiStripeBillingRecipe } from './ui-module-stripe-billing.js';
@@ -61,6 +62,7 @@ export * from './ui-react-query.js';
 export * from './ui-context.js';
 export * from './ui-state-vue.js';
 export * from './ui-module-auth-layouts.js';
+export * from './ui-module-auth-layouts-vue.js';
 export * from './ui-module-user-management.js';
 export * from './ui-module-settings-rbac.js';
 export * from './ui-module-stripe-billing.js';
@@ -97,6 +99,7 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   // The Vue side of the same four options — four collapse onto three (doc 00 §5.1).
   ...VUE_STATE_RECIPES,
   authLayoutsRecipe,
+  authLayoutsVueRecipe,
   // The two halves of userManagement. Listed apart because they belong to different layers;
   // resolution order comes from `requires` and the phase, not from this array.
   uiUserManagementRecipe,

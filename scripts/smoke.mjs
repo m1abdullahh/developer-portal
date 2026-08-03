@@ -199,6 +199,26 @@ const CASES = {
   },
 
   /*
+   * The first page module ported across the family boundary (P2.4).
+   *
+   * Run under Vuetify rather than CSS Modules on purpose: the pages are written against the
+   * primitive API, and Vuetify is the implementation whose props are furthest from the markup a
+   * page would write by hand. If a wrapper leaks its library's API, this is where it shows.
+   */
+  'module-auth-nuxt': {
+    description: 'Auth pages on Nuxt with Vuetify — the same module, a different family',
+    fixture: 'spineSpec',
+    override: {
+      ui: {
+        framework: 'nuxt',
+        styling: 'mui',
+        modules: { authLayouts: true, userManagement: false, settingsRbac: false },
+      },
+      meta: { slug: 'smoke-auth-nuxt' },
+    },
+  },
+
+  /*
    * The userManagement page module (P2.5b), on both layers at once.
    *
    * The only case that compiles generated Prisma queries and a page using all eight primitives,
