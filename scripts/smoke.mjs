@@ -128,24 +128,41 @@ const CASES = {
   },
 
   /*
-   * Nuxt (P2.4) — the first non-React framework.
+   * Nuxt (P2.4) — the first non-React framework, once per Vue styling system.
    *
-   * The base recipe only: every styling, state and page-module recipe declines for Vue, so this
-   * proves the shell installs, lints, typechecks, builds and boots and nothing more. That is the
-   * point of running it now — the framework contract's assumptions were React-shaped, and this is
-   * what shows whether the rest of the pipeline copes with a framework that has no JSX, no
-   * provider tree and its source under `app/`.
+   * These two are what prove the framework contract stretched: a framework with no JSX, no
+   * provider tree and its source under `app/`. Everything the React cases assume had to be
+   * declared rather than assumed to get here.
+   *
+   * `css-modules` is the cheap one — zero dependencies, so a failure is an API-design problem
+   * rather than a library-integration one. It compiles the `.vue` primitives, their
+   * `<style module>` blocks and the generic `<script setup>` on the table.
    */
   nuxt: {
     description: 'Nuxt 4 + CSS Modules — eight primitives as single-file components',
     fixture: 'uiOnlyVercelSpec',
-    // `css-modules`, not the default: it is the one styling option with a Vue implementation, so
-    // this is what actually compiles the `.vue` primitives, their `<style module>` blocks and the
-    // generic `<script setup>` on the table. With the default the recipe declines and this case
-    // proves only that a bare Nuxt shell builds.
     override: {
       ui: { framework: 'nuxt', styling: 'css-modules' },
       meta: { slug: 'smoke-nuxt' },
+    },
+  },
+
+  /*
+   * Vuetify is the expensive one, and the counterpart to `styling-mui` in the React family: the
+   * only Vue styling system wrapping a third-party component library, so it is where a primitive
+   * API that cannot actually be implemented shows up. MUI forced a redesign of `Select` when the
+   * React family reached this point.
+   *
+   * It is also the only case compiling the vite-plugin-vuetify wiring — the import, the
+   * `build.transpile` entry and the Vite plugin, each inserted at a different `nuxt.config.ts`
+   * marker.
+   */
+  'nuxt-vuetify': {
+    description: 'Nuxt + Vuetify — eight primitives wrapping a real component library',
+    fixture: 'uiOnlyVercelSpec',
+    override: {
+      ui: { framework: 'nuxt', styling: 'mui' },
+      meta: { slug: 'smoke-nuxt-vuetify' },
     },
   },
 
