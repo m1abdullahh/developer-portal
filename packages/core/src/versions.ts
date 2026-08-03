@@ -82,6 +82,16 @@ export const GENERATED_VERSIONS = {
   '@reduxjs/toolkit': '2.12.0',
   'react-redux': '9.3.0',
 
+  // ── UI: state for Vue (P2.4, doc 00 §5.1) ─────────────────────────────────
+  // Four wizard options collapse onto three implementations here. Zustand and Redux Toolkit both
+  // map to Pinia — Vue has one idiomatic store, and manufacturing a second to honour a table row
+  // would ship a worse project than admitting the mapping.
+  pinia: '4.0.2',
+  '@pinia/nuxt': '1.0.1',
+  // Same version as the React query client, which TanStack releases in lockstep across adapters.
+  // Verified on 2026-08-01.
+  '@tanstack/vue-query': '5.101.4',
+
   // ── UI: forms ─────────────────────────────────────────────────────────────
   'react-hook-form': '7.83.0',
   '@hookform/resolvers': '5.5.7',

@@ -148,6 +148,24 @@ const CASES = {
   },
 
   /*
+   * TanStack Query on Nuxt — the state path with the most that can go wrong.
+   *
+   * The Pinia path is already covered by the `nuxt` case above, whose default state maps to it.
+   * This one is separate because the plugin does real work: a per-request QueryClient, and a
+   * dehydrate/hydrate pair across the SSR boundary. Both fail silently — a shared client leaks
+   * cache between users, and missing hydration makes every server-fetched page blank and refill
+   * on load.
+   */
+  'nuxt-vue-query': {
+    description: 'Nuxt + TanStack Query — per-request client, SSR hydration',
+    fixture: 'uiOnlyVercelSpec',
+    override: {
+      ui: { framework: 'nuxt', styling: 'css-modules', state: 'react-query' },
+      meta: { slug: 'smoke-nuxt-vue-query' },
+    },
+  },
+
+  /*
    * Tailwind completes the set: with this, every styling option the wizard offers has a Vue
    * implementation, which is the bar for offering Nuxt at all. It is also the only case that
    * compiles the @tailwindcss/vite wiring.
