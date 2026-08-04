@@ -129,13 +129,18 @@ describe('the policy is the same policy in every language', () => {
     api: { runtime: 'python-fastapi', paradigm: 'rest', database: 'postgres', orm: 'sqlmodel' },
   });
 
-  /** `viewer: ['read'],` and `"viewer": ("read",),` reduced to the same shape. */
+  const goSpec = spineSpec({
+    meta: { slug: 'policy-go' },
+    api: { runtime: 'go-gin', paradigm: 'rest', database: 'postgres', orm: 'gorm' },
+  });
+
+  /** `viewer: ['read'],` / `"viewer": ("read",),` / `"viewer": {"read"},` — one shape. */
   const parseMatrix = (source: string, open: string): Record<string, string[]> => {
     const body = source.slice(source.indexOf(open) + open.length);
     const matrix: Record<string, string[]> = {};
 
     for (const line of body.split('\n')) {
-      const entry = /^\s*['"]?([a-z]+)['"]?\s*:\s*[[(](.*?)[\])]/.exec(line);
+      const entry = /^\s*['"]?([a-z]+)['"]?\s*:\s*[[({](.*?)[\])}]/.exec(line);
       if (!entry) {
         // Stop at the closing brace so a later object in the same file cannot leak in.
         if (/^\s*[}]/.test(line)) break;
@@ -146,6 +151,8 @@ describe('the policy is the same policy in every language', () => {
     return matrix;
   };
 
+  const TS_OPEN = 'ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {';
+
   it('grants each role exactly the same permissions in TypeScript and Python', async () => {
     const files = await generate(spec);
 
@@ -155,13 +162,29 @@ describe('the policy is the same policy in every language', () => {
     expect(ts, 'the browser app should still receive the TypeScript policy').toBeTruthy();
     expect(py, 'the FastAPI service should receive the Python policy').toBeTruthy();
 
-    const tsMatrix = parseMatrix(ts, 'ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {');
+    const tsMatrix = parseMatrix(ts, TS_OPEN);
     const pyMatrix = parseMatrix(py, 'ROLE_PERMISSIONS: dict[Role, tuple[Permission, ...]] = {');
 
     // Guards against the parser silently matching nothing, which would make this whole assertion
     // a comparison of two empty objects.
     expect(Object.keys(tsMatrix).sort()).toEqual(['admin', 'editor', 'owner', 'viewer']);
     expect(pyMatrix).toEqual(tsMatrix);
+  });
+
+  it('grants each role exactly the same permissions in Go', async () => {
+    const files = await generate(goSpec);
+
+    const ts = String(find(files, 'lib/permissions.ts')[0]?.content);
+    const go = String(find(files, 'internal/permissions/permissions.go')[0]?.content);
+
+    expect(ts, 'the browser app should still receive the TypeScript policy').toBeTruthy();
+    expect(go, 'the Gin service should receive the Go policy').toBeTruthy();
+
+    const tsMatrix = parseMatrix(ts, TS_OPEN);
+    const goMatrix = parseMatrix(go, 'var rolePermissions = map[Role][]Permission{');
+
+    expect(Object.keys(goMatrix).sort()).toEqual(['admin', 'editor', 'owner', 'viewer']);
+    expect(goMatrix).toEqual(tsMatrix);
   });
 
   it('the Python service declares roles in exactly one place', async () => {

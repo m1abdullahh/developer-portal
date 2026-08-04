@@ -130,7 +130,7 @@ export const API_RUNTIMES: Record<ApiRuntime, OptionMeta> = {
     label: 'Python (FastAPI)',
     description: 'FastAPI with Pydantic models, uv and ruff.',
   },
-  'go-gin': { label: 'Go (Gin)', description: 'Gin with generated OpenAPI.', comingIn: 'P3' },
+  'go-gin': { label: 'Go (Gin)', description: 'Gin with huma — structs generate the OpenAPI.' },
 };
 
 export const API_PARADIGMS: Record<ApiParadigm, OptionMeta> = {

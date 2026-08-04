@@ -4,7 +4,12 @@ to: app/db/session.py
 import logging
 from collections.abc import AsyncIterator
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.sql import text
 
 from app.config import settings
@@ -53,8 +58,8 @@ SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=
 async def get_session() -> AsyncIterator[AsyncSession]:
     """FastAPI dependency: one session per request, always closed.
 
-        @router.get("/widgets")
-        async def list_widgets(session: AsyncSession = Depends(get_session)): ...
+    @router.get("/widgets")
+    async def list_widgets(session: AsyncSession = Depends(get_session)): ...
     """
     async with SessionLocal() as session:
         yield session

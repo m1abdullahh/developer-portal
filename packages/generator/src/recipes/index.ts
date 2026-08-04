@@ -33,15 +33,19 @@ import { uiSettingsRbacRecipe } from './ui-module-settings-rbac.js';
 import { uiStripeBillingRecipe } from './ui-module-stripe-billing.js';
 import { nodeTsRecipe } from './api-node-ts.js';
 import { pythonFastapiRecipe } from './api-python-fastapi.js';
-import { restRecipe, restPythonRecipe } from './api-rest.js';
+import { goGinRecipe } from './api-go-gin.js';
+import { restRecipe, restPythonRecipe, restGoRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
 import { sqlmodelRecipe } from './api-sqlmodel.js';
+import { gormRecipe } from './api-gorm.js';
 import {
   apiPermissionsRecipe,
+  goPermissionsRecipe,
   pythonPermissionsRecipe,
   uiPermissionsRecipe,
 } from './policy-permissions.js';
 import { PYTHON_MIDDLEWARE_RECIPES } from './api-middleware-python.js';
+import { GO_MIDDLEWARE_RECIPES } from './api-middleware-go.js';
 import { apiUserManagementRecipe } from './api-module-user-management.js';
 import { apiSettingsRbacRecipe } from './api-module-settings-rbac.js';
 import { apiStripeBillingRecipe } from './api-module-stripe-billing.js';
@@ -51,6 +55,7 @@ import {
   containerNuxtRecipe,
   containerNodeApiRecipe,
   containerPythonApiRecipe,
+  containerGoApiRecipe,
   containerSpaNginxRecipe,
 } from './ops-container.js';
 import { helmRecipe } from './ops-helm.js';
@@ -78,15 +83,18 @@ export * from './ui-module-settings-rbac.js';
 export * from './ui-module-stripe-billing.js';
 export * from './api-node-ts.js';
 export * from './api-python-fastapi.js';
+export * from './api-go-gin.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
 export * from './api-sqlmodel.js';
+export * from './api-gorm.js';
 export * from './policy-permissions.js';
 export * from './api-module-user-management.js';
 export * from './api-module-settings-rbac.js';
 export * from './api-module-stripe-billing.js';
 export * from './api-middleware.js';
 export * from './api-middleware-python.js';
+export * from './api-middleware-go.js';
 export * from './ops-container.js';
 export * from './ops-helm.js';
 export * from './ops-gitops.js';
@@ -120,16 +128,20 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   uiSettingsRbacRecipe,
   uiStripeBillingRecipe,
   nodeTsRecipe,
-  // The second runtime. Exactly one of these applies to any spec — `appliesTo` keys on
-  // `api.runtime` — so they never collide despite both owning the server file for their language.
+  // The second and third runtimes. Exactly one of these applies to any spec — `appliesTo` keys on
+  // `api.runtime` — so they never collide despite each owning the server file for its language.
   pythonFastapiRecipe,
+  goGinRecipe,
   restRecipe,
   restPythonRecipe,
+  restGoRecipe,
   prismaRecipe,
   sqlmodelRecipe,
+  gormRecipe,
   // The role and permission policy, emitted into whichever layers enforce it.
   apiPermissionsRecipe,
   pythonPermissionsRecipe,
+  goPermissionsRecipe,
   uiPermissionsRecipe,
   apiUserManagementRecipe,
   apiSettingsRbacRecipe,
@@ -139,11 +151,14 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   // option names and the resulting behaviour are shared — see the note in that module about
   // Starlette applying middleware in the reverse of the order it is added.
   ...PYTHON_MIDDLEWARE_RECIPES,
+  // And for Gin, where Use() runs first-added-first — no inversion, unlike Starlette.
+  ...GO_MIDDLEWARE_RECIPES,
   containerNextRecipe,
   containerNuxtRecipe,
   containerSpaNginxRecipe,
   containerNodeApiRecipe,
   containerPythonApiRecipe,
+  containerGoApiRecipe,
   helmRecipe,
   argocdRecipe,
   githubActionsRecipe,

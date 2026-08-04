@@ -21,17 +21,20 @@ import type { VirtualFile } from './types.js';
 const registry = createRegistry();
 
 /** Every middleware on, so each runtime declares its full set of variables. */
+const ORM_FOR: Record<ApiRuntime, string> = {
+  'node-ts': 'prisma',
+  'python-fastapi': 'sqlmodel',
+  'go-gin': 'gorm',
+};
+
 const specFor = (runtime: ApiRuntime): ProjectSpec =>
   spineSpec({
     meta: { slug: `runtime-${runtime}` },
     ui: null,
-    api:
-      runtime === 'node-ts'
-        ? { runtime, paradigm: 'rest', database: 'postgres', orm: 'prisma' }
-        : { runtime, paradigm: 'rest', database: 'postgres', orm: 'sqlmodel' },
-  });
+    api: { runtime, paradigm: 'rest', database: 'postgres', orm: ORM_FOR[runtime] },
+  } as Parameters<typeof spineSpec>[0]);
 
-const RUNTIMES: readonly ApiRuntime[] = ['node-ts', 'python-fastapi'];
+const RUNTIMES: readonly ApiRuntime[] = ['node-ts', 'python-fastapi', 'go-gin'];
 
 const cache = new Map<ApiRuntime, Promise<readonly VirtualFile[]>>();
 
@@ -48,9 +51,9 @@ const read = (files: readonly VirtualFile[], path: string): string =>
 
 describe('the registry', () => {
   it('has a contract for every runtime that ships', () => {
-    // `go-gin` is absent on purpose — it has no recipe yet, and `runtimeContract` throwing for it
-    // is what stops a Go spec from silently generating a repository with no source code in it.
-    expect(registeredRuntimes()).toEqual(['node-ts', 'python-fastapi']);
+    // All three now. While go-gin had no recipe, its absence here was what stopped a Go spec
+    // from silently generating a repository with no source code in it.
+    expect(registeredRuntimes()).toEqual(['go-gin', 'node-ts', 'python-fastapi']);
   });
 
   it.each(RUNTIMES)('%s declares a server file that exists in its output', async (runtime) => {
@@ -144,5 +147,17 @@ describe('middleware runs in the same order regardless of language', () => {
       [...positions].sort((a, b) => a - b),
       'rate limit → cors → logging in the file means logging → cors → rate limit at runtime',
     ).toEqual(positions);
+  });
+
+  it('Go registers logging first, like Node — gin.Use is first-added-first-run', async () => {
+    const server = read(await generate('go-gin'), 'internal/server/server.go');
+    const positions = [
+      'middleware.RequestContext()',
+      'middleware.CORS(cfg)',
+      'middleware.RateLimit(cfg)',
+    ].map((name) => server.indexOf(`r.Use(${name})`));
+
+    expect(positions.every((p) => p >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
   });
 });

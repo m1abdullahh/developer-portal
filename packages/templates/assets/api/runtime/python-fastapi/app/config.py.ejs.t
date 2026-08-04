@@ -4,7 +4,14 @@ to: app/config.py
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The other two runtimes spell some levels differently — pino says "warn" and "fatal", the stdlib
+# says "warning" and "critical" — and LOG_LEVEL is set by the same Helm values file for every
+# service. Accepting the aliases here means one chart value works across all three runtimes
+# instead of failing exactly one of them at boot.
+_LOG_LEVEL_ALIASES = {"warn": "warning", "fatal": "critical", "trace": "debug"}
 
 
 class Settings(BaseSettings):
@@ -28,6 +35,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: Literal["critical", "error", "warning", "info", "debug"] = "info"
     # >>> idp:env-schema
     # <<< idp:env-schema
+
+    @field_validator("LOG_LEVEL", mode="before")
+    @classmethod
+    def _normalize_log_level(cls, value: object) -> object:
+        lowered = str(value).lower()
+        return _LOG_LEVEL_ALIASES.get(lowered, lowered)
 
 
 @lru_cache

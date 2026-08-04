@@ -33,6 +33,10 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Python only. ruff also formats Python code blocks inside markdown, and it wants PEP 8's two
+# blank lines before each top-level def — but the README is assembled by a merger that collapses
+# consecutive blank lines, so the two tools would disagree forever. The format gate is for code.
+exclude = ["*.md"]
 
 [tool.ruff.lint]
 # E,F = pyflakes/pycodestyle; I = import sorting (so there is no separate isort); B = bugbear;

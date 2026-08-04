@@ -2,10 +2,10 @@
 to: app/middleware/auth.py
 ---
 from collections.abc import Callable, Coroutine
-from typing import Any
+from typing import Annotated, Any
 
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -40,7 +40,9 @@ def _unauthorized() -> HTTPException:
 
 
 async def current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    # Annotated rather than a `= Depends(...)` default — the modern FastAPI form, and the reason
+    # ruff's B008 (no function calls in argument defaults) passes without a suppression.
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> AuthenticatedUser:
     if credentials is None or not credentials.credentials:
         raise _unauthorized()
@@ -83,7 +85,9 @@ def require_permission(
     probes would return 401 and Kubernetes would restart a perfectly healthy pod.
     """
 
-    async def guard(user: AuthenticatedUser = Depends(current_user)) -> AuthenticatedUser:
+    async def guard(
+        user: Annotated[AuthenticatedUser, Depends(current_user)],
+    ) -> AuthenticatedUser:
         if not has_permission(user.role, permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

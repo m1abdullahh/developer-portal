@@ -187,6 +187,58 @@ export const PYTHON_VERSIONS = {
 
 export type PythonPackage = keyof typeof PYTHON_VERSIONS;
 
+/**
+ * Go modules, resolved against proxy.golang.org rather than npm or PyPI — the third registry,
+ * kept separate for the same two reasons the Python map is (see PYTHON_VERSIONS): module paths
+ * are meaningless on the other registries, and Go's `v`-prefixed pseudo-semver fails both other
+ * version grammars.
+ *
+ * All values verified against the Go module proxy on 2026-08-04.
+ */
+export const GO_VERSIONS = {
+  // ── API: Gin (P3) ─────────────────────────────────────────────────────────
+  'github.com/gin-gonic/gin': 'v1.12.0',
+  // The schema-first layer on top of Gin. Go has no FastAPI: Gin alone validates nothing and
+  // documents nothing, and the mainstream alternative — swag annotations in comments — is a
+  // hand-maintained document wearing a generated one's clothes. huma derives validation and the
+  // OpenAPI 3.1 document from the same Go structs, which is the property the other two runtimes
+  // are built around.
+  'github.com/danielgtaylor/huma/v2': 'v2.39.1',
+  // ── API: auth ─────────────────────────────────────────────────────────────
+  'github.com/golang-jwt/jwt/v5': 'v5.3.1',
+  // Already inside every gin project transitively — gin's binding runs it on struct tags. The
+  // validation middleware imports it directly to translate its error type, and Go requires a
+  // direct import to be a direct requirement.
+  'github.com/go-playground/validator/v10': 'v10.30.3',
+  // ── API: GORM + goose (P3) ────────────────────────────────────────────────
+  'gorm.io/gorm': 'v1.31.2',
+  'gorm.io/driver/postgres': 'v1.6.2',
+  // Versioned SQL migrations, embedded in the binary. GORM's own AutoMigrate only ever adds —
+  // it will not drop a column, tighten a type or backfill data — so it degrades from "the
+  // migration tool" to "a trap" the first time a schema change is destructive. goose runs plain
+  // SQL files with an Up and a Down, which is the same posture Alembic and Prisma take.
+  'github.com/pressly/goose/v3': 'v3.27.3',
+} as const satisfies Record<string, `v${string}`>;
+
+export type GoModule = keyof typeof GO_VERSIONS;
+
+/** Looks up a pinned Go module version, failing loudly if the module is unknown. */
+export function goVersion(module: GoModule): string {
+  const v = GO_VERSIONS[module];
+  if (!v) {
+    throw new Error(
+      `No pinned version for the Go module "${module}". Add it to GO_VERSIONS in ` +
+        `packages/core/src/versions.ts rather than inlining a version in a template.`,
+    );
+  }
+  return v;
+}
+
+/** Renders `module vX.Y.Z` lines for a go.mod require block. */
+export function goRequirements(modules: readonly GoModule[]): string[] {
+  return modules.map((module) => `${module} ${goVersion(module)}`);
+}
+
 /** Looks up a pinned PyPI version, failing loudly if the package is unknown. */
 export function pythonVersion(pkg: PythonPackage): string {
   const v = PYTHON_VERSIONS[pkg];

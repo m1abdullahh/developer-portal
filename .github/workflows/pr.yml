@@ -139,6 +139,10 @@ jobs:
       # With a reachable database the harness requires /ready to return 200, not merely to
       # answer. That turns the readiness probe into a real assertion about Prisma connecting.
       SMOKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/smoke
+      # A missing toolchain fails the run rather than skipping its layers. Locally a skip with a
+      # warning is the right behaviour; here it is a silent coverage hole — the Python cases ran
+      # as zero-step no-ops for exactly as long as nothing enforced this.
+      SMOKE_REQUIRE_TOOLCHAINS: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -147,6 +151,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+
+      # The Python and Go cases run the same toolchains a developer would. Go is preinstalled on
+      # the runner; uv is not.
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
 
       - name: Install
         run: npm ci

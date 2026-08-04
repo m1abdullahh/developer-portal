@@ -8,13 +8,12 @@ from alembic import context
 from sqlalchemy.engine import Connection
 from sqlmodel import SQLModel
 
+# app.models is imported for the side effect of registering every table on SQLModel.metadata.
+# Without it autogenerate sees an empty metadata and produces a migration that drops every table
+# it finds in the database — a data-loss bug that looks like a working tool.
+import app.models  # noqa: F401
 from app.config import settings
 from app.db.session import async_url
-
-# Imported for the side effect of registering every table on SQLModel.metadata. Without this line
-# autogenerate sees an empty metadata and produces a migration that drops every table it finds in
-# the database — a data-loss bug that looks like a working tool.
-import app.models  # noqa: F401
 
 config = context.config
 

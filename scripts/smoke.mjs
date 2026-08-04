@@ -61,6 +61,23 @@ const CASES = {
   },
 
   /*
+   * The non-Node runtimes (P3). These two ran as zero-layer no-ops until layersOf learned to
+   * recognise pyproject.toml and go.mod — the harness generated them, found nothing it knew how
+   * to install, and passed. Locally they skip with a loud warning when uv or go is missing; in
+   * CI, SMOKE_REQUIRE_TOOLCHAINS turns that skip into a failure.
+   */
+  'api-python': {
+    description: 'FastAPI, full middleware, SQLModel — uv sync, ruff, pytest, boot and probe',
+    fixture: 'apiOnlyPythonSpec',
+    override: { meta: { slug: 'smoke-api-python' } },
+  },
+  'api-go': {
+    description: 'Gin, full middleware, GORM — go vet, test, build, boot and probe',
+    fixture: 'apiOnlyGoSpec',
+    override: { meta: { slug: 'smoke-api-go' } },
+  },
+
+  /*
    * One case per state library (P2.1).
    *
    * These are UI-only on purpose: the API half is identical across all four and installing
@@ -427,20 +444,83 @@ function indent(text) {
 
 /** Layers to install and build, in the order they appear in the generated repo. */
 function layersOf(files) {
-  const manifests = files.filter((f) => /(^|^apps\/[^/]+\/)package\.json$/.test(f.path));
-  return manifests.map((f) => {
-    const manifest = JSON.parse(f.content);
-    const deps = { ...manifest.dependencies, ...manifest.devDependencies };
+  const layers = [];
 
-    return {
-      dir: f.path.replace(/package\.json$/, ''),
-      scripts: manifest.scripts ?? {},
-      // Keyed on the frameworks that produce a browser app, not on `next` alone. Checking only
-      // for `next` classified the Vite SPA as an API layer, so the harness tried to boot it and
-      // poll /health — a probe a static site has no way to answer.
-      kind: deps.next || deps.vite || deps.nuxt ? 'web' : 'api',
-    };
-  });
+  for (const f of files) {
+    if (/(^|^apps\/[^/]+\/)package\.json$/.test(f.path)) {
+      const manifest = JSON.parse(f.content);
+      const deps = { ...manifest.dependencies, ...manifest.devDependencies };
+      layers.push({
+        dir: f.path.replace(/package\.json$/, ''),
+        scripts: manifest.scripts ?? {},
+        // Keyed on the frameworks that produce a browser app, not on `next` alone. Checking only
+        // for `next` classified the Vite SPA as an API layer, so the harness tried to boot it and
+        // poll /health — a probe a static site has no way to answer.
+        kind: deps.next || deps.vite || deps.nuxt ? 'web' : 'api',
+        toolchain: 'node',
+      });
+      continue;
+    }
+
+    /*
+     * The other two manifests. This function used to look for package.json ONLY, which made a
+     * generated FastAPI project have zero layers: the harness generated it, found nothing it
+     * recognised, and reported success having installed, built and booted nothing at all. A
+     * smoke harness that silently skips is worse than none — its green check reads as coverage.
+     */
+    if (/(^|^apps\/[^/]+\/)pyproject\.toml$/.test(f.path)) {
+      layers.push({
+        dir: f.path.replace(/pyproject\.toml$/, ''),
+        scripts: {},
+        kind: 'api',
+        toolchain: 'python',
+      });
+      continue;
+    }
+
+    if (/(^|^apps\/[^/]+\/)go\.mod$/.test(f.path)) {
+      layers.push({
+        dir: f.path.replace(/go\.mod$/, ''),
+        scripts: {},
+        kind: 'api',
+        toolchain: 'go',
+      });
+    }
+  }
+
+  return layers;
+}
+
+/**
+ * Whether a layer's toolchain is installed, probed once per run.
+ *
+ * A machine without Go must not report the generator broken — locally a missing toolchain skips
+ * the layer with a loud warning. In CI that same silence would be the exact hole this harness
+ * just had, so the smoke workflow sets SMOKE_REQUIRE_TOOLCHAINS=1 and a missing toolchain FAILS.
+ */
+const TOOLCHAIN_PROBES = {
+  node: ['npm', ['--version']],
+  python: ['uv', ['--version']],
+  go: ['go', ['version']],
+};
+
+const toolchainStatus = new Map();
+
+async function toolchainAvailable(toolchain) {
+  if (toolchainStatus.has(toolchain)) return toolchainStatus.get(toolchain);
+  const [command, args] = TOOLCHAIN_PROBES[toolchain];
+  const { code } = await run(command, args, { timeout: 30_000, quiet: true });
+  toolchainStatus.set(toolchain, code === 0);
+  return code === 0;
+}
+
+/** How a layer's API process starts, per toolchain. */
+function startCommand(layer) {
+  if (layer.toolchain === 'python') return ['uv', ['run', 'python', '-m', 'app']];
+  // `go run` recompiles, but the build cache is warm from the vet/test/build steps, so the boot
+  // is near-instant and there is no binary path to thread through.
+  if (layer.toolchain === 'go') return ['go', ['run', './cmd/api']];
+  return ['npm', ['start']];
 }
 
 /**
@@ -470,7 +550,9 @@ function exampleEnv(exampleContent, into = {}) {
 function apiEnv(exampleContent, port) {
   return exampleEnv(exampleContent, {
     PORT: String(port),
+    // Both spellings, one per runtime family; each service reads its own and ignores the other.
     NODE_ENV: 'production',
+    ENVIRONMENT: 'production',
     LOG_LEVEL: 'warn',
   });
 }
@@ -495,7 +577,8 @@ async function bootApi(dir, layer, workspace) {
     () => '',
   );
 
-  const child = spawn('npm', ['start'], {
+  const [startCmd, startArgs] = startCommand(layer);
+  const child = spawn(startCmd, startArgs, {
     cwd: dir,
     env: { ...process.env, ...apiEnv(example, port) },
     shell: IS_WINDOWS,
@@ -570,12 +653,56 @@ async function bootWeb(dir, layerEnv = {}) {
   }
 }
 
+/**
+ * Install, lint, test and boot for the Python and Go layers.
+ *
+ * The same commands the generated CI runs, deliberately — the harness must exercise what CI
+ * checks or it only proves the parts CI does not (see the lint/test note in the node path).
+ */
+async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv) {
+  const steps =
+    layer.toolchain === 'python'
+      ? [
+          ['sync', 'uv', ['sync', '--all-groups'], 900_000],
+          ['ruff check', 'uv', ['run', 'ruff', 'check', '.'], 300_000],
+          ['ruff format', 'uv', ['run', 'ruff', 'format', '--check', '.'], 300_000],
+          ['pytest', 'uv', ['run', 'pytest'], 300_000],
+        ]
+      : [
+          ['tidy', 'go', ['mod', 'tidy'], 900_000],
+          // `gofmt -l` exits 0 regardless; listing a file is the failure. The generated CI runs
+          // the same check, so a formatting drift must fail here too or the harness proves less
+          // than CI checks.
+          ['gofmt', 'gofmt', ['-l', '.'], 120_000, 'empty-output'],
+          ['vet', 'go', ['vet', './...'], 600_000],
+          ['test', 'go', ['test', './...'], 600_000],
+          ['build', 'go', ['build', './...'], 600_000],
+        ];
+
+  for (const [stepLabel, command, args, timeout, mode] of steps) {
+    await step(`${label}: ${stepLabel}`, async () => {
+      // The layer's own documented environment, same as the node path: pytest imports the app,
+      // the app parses Settings at import, and Settings requires the variables .env.example
+      // documents. A developer who copies .env.example to .env gets exactly this.
+      const { code, output } = await run(command, args, { cwd: dir, timeout, env: layerEnv });
+      if (code !== 0) throw new Error(output);
+      if (mode === 'empty-output' && output.trim() !== '') {
+        throw new Error(`gofmt would reformat:\n${output}`);
+      }
+    });
+    if (currentCase.failed) return;
+  }
+
+  await step(`${label}: boot`, async () => bootApi(dir, layer, workspace));
+}
+
 async function smokeCase(name, workspaceRoot) {
   startCase(name);
-  const { spineSpec, uiOnlyVercelSpec } = await import('@idp/core');
+  const { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec } =
+    await import('@idp/core');
   const { createRegistry, runPipeline, emitTree } = await import('@idp/generator');
 
-  const fixtures = { spineSpec, uiOnlyVercelSpec };
+  const fixtures = { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec };
   const { fixture, override } = CASES[name];
   const spec = fixtures[fixture](override);
 
@@ -599,6 +726,29 @@ async function smokeCase(name, workspaceRoot) {
       await readFile(path.join(dir, '.env.example'), 'utf8').catch(() => null),
       { DATABASE_URL: placeholderFor('DATABASE_URL') },
     );
+
+    if (!(await toolchainAvailable(layer.toolchain))) {
+      if (process.env.SMOKE_REQUIRE_TOOLCHAINS) {
+        await step(`${label}: toolchain`, async () => {
+          throw new Error(
+            `The ${layer.toolchain} toolchain is not installed and SMOKE_REQUIRE_TOOLCHAINS is ` +
+              `set. In CI this layer being skipped is a silent coverage hole, so it fails instead.`,
+          );
+        });
+        return;
+      }
+      console.log(
+        `\n  \x1b[33m⚠ ${label}: the ${layer.toolchain} toolchain is not installed — ` +
+          `install/build/boot SKIPPED for this layer.\x1b[0m`,
+      );
+      continue;
+    }
+
+    if (layer.toolchain !== 'node') {
+      await smokeNonNodeLayer(layer, dir, label, workspace, layerEnv);
+      if (currentCase.failed) return;
+      continue;
+    }
 
     // `npm install`, not `npm ci` — a generated project has no lockfile yet, and producing one
     // is the developer's first act after cloning.

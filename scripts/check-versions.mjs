@@ -133,6 +133,48 @@ function collectPythonPins() {
 }
 
 /**
+ * The Go half, resolved against proxy.golang.org.
+ *
+ * Module paths must be lowercased for the proxy (its "case encoding" replaces capitals with
+ * !-escapes; every module we pin is already lowercase, and lowercasing here keeps that true by
+ * force rather than by luck).
+ */
+function collectGoPins() {
+  const file = path.join(ROOT, 'packages', 'core', 'src', 'versions.ts');
+  if (!existsSync(file)) return [];
+
+  const source = readFileSync(file, 'utf8');
+  const start = source.indexOf('GO_VERSIONS = {');
+  if (start === -1) return [];
+  const body = source.slice(start, source.indexOf('} as const', start));
+
+  const pins = [];
+  for (const match of body.matchAll(/^\s+'([a-z0-9/._-]+)':\s*'(v[^']+)',/gm)) {
+    const [, name, version] = match;
+    pins.push({ name, version, registry: 'goproxy', sources: ['packages/core/src/versions.ts'] });
+  }
+
+  if (pins.length === 0) {
+    throw new Error(
+      'Parsed no versions out of GO_VERSIONS. The manifest format changed and this parser ' +
+        'needs updating — failing rather than reporting a vacuous pass.',
+    );
+  }
+  return pins;
+}
+
+async function resolvesOnGoProxy(name, version) {
+  try {
+    const res = await fetch(`https://proxy.golang.org/${name.toLowerCase()}/@v/${version}.info`);
+    if (!res.ok) return false;
+    const body = await res.json();
+    return body.Version === version;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Asks PyPI directly rather than shelling out to pip.
  *
  * `pip index versions` requires pip, a Python interpreter and a network resolver on the runner;
@@ -170,12 +212,13 @@ function resolves(name, version) {
 const ownPins = collectPins();
 const generatedPins = collectGeneratedPins();
 const pythonPins = collectPythonPins();
-const pins = [...ownPins, ...generatedPins, ...pythonPins];
+const goPins = collectGoPins();
+const pins = [...ownPins, ...generatedPins, ...pythonPins, ...goPins];
 
 console.log(
   `Checking ${pins.length} exactly-pinned dependencies ` +
     `(${ownPins.length} in this repository, ${generatedPins.length} emitted into projects, ` +
-    `${pythonPins.length} on PyPI)...\n`,
+    `${pythonPins.length} on PyPI, ${goPins.length} on the Go module proxy)...\n`,
 );
 
 const failures = [];
@@ -183,7 +226,9 @@ for (const pin of pins) {
   const ok =
     pin.registry === 'pypi'
       ? await resolvesOnPypi(pin.name, pin.version)
-      : resolves(pin.name, pin.version);
+      : pin.registry === 'goproxy'
+        ? await resolvesOnGoProxy(pin.name, pin.version)
+        : resolves(pin.name, pin.version);
 
   if (ok) {
     console.log(`  ok    ${pin.name}@${pin.version}`);

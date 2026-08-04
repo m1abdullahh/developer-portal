@@ -96,24 +96,20 @@ describe('the P1 spine is never marked as coming later', () => {
 
 describe('comingSoonReason', () => {
   /*
-   * `go-gin`, and this target has now moved twice.
-   *
-   * It named Nuxt for the whole of P2, then `python-fastapi` when Nuxt shipped. FastAPI now ships
-   * too — runtime, five middleware, REST/OpenAPI, SQLModel with Alembic, a distroless image and a
-   * CI workflow that runs uv rather than npm — so asserting it is still "coming in P3" would have
-   * failed, correctly. Go is the remaining one.
-   *
-   * The pattern is worth noticing: this test moves every time an option graduates, which is the
-   * point. A coming-soon note nobody re-examines is how a working feature stays unselectable.
+   * `graphql`, and this target has now moved three times — Nuxt, then python-fastapi, then
+   * go-gin, each graduating out from under the assertion. The churn is the point: a coming-soon
+   * note nobody re-examines is how a working feature stays unselectable. The paradigms are the
+   * remaining unbuilt surface.
    */
   it('names the phase so the note is actionable', () => {
-    const reason = comingSoonReason(API_RUNTIMES['go-gin']);
-    expect(reason).toContain('P3');
+    const reason = comingSoonReason(API_PARADIGMS.graphql);
+    expect(reason).toMatch(/P\d/);
   });
 
   it.each([
     ['nuxt', UI_FRAMEWORKS.nuxt],
     ['python-fastapi', API_RUNTIMES['python-fastapi']],
+    ['go-gin', API_RUNTIMES['go-gin']],
   ])('says nothing for %s, which actually ships', (_name, meta) => {
     // The inverse, and the failure mode that matters more: a note telling users a working
     // feature is unavailable is worse than a missing note, because nobody selects it to find out.

@@ -19,7 +19,13 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { apiOnlyPythonSpec, spineSpec, uiOnlyVercelSpec, type ProjectSpec } from '@idp/core';
+import {
+  apiOnlyGoSpec,
+  apiOnlyPythonSpec,
+  spineSpec,
+  uiOnlyVercelSpec,
+  type ProjectSpec,
+} from '@idp/core';
 import { parse, parseAllDocuments } from 'yaml';
 import { createRegistry } from './recipes/index.js';
 import { runPipeline } from './pipeline.js';
@@ -68,6 +74,13 @@ const CASES = [
     serves: 'app/routes/health.py',
   },
   {
+    name: 'go-api',
+    recipeId: 'ops.container.go-api',
+    spec: apiOnlyGoSpec({ meta: { slug: 'deployable-go' } }),
+    dockerfile: 'Dockerfile',
+    serves: 'internal/routes/health.go',
+  },
+  {
     name: 'spa-nginx',
     recipeId: 'ops.container.spa-nginx',
     spec: uiOnlyVercelSpec({
@@ -103,6 +116,7 @@ const read = (files: readonly VirtualFile[], path: string): string => {
 describe('the registry is complete', () => {
   it('every container recipe has registered a contract', () => {
     expect(registeredDeployables()).toEqual([
+      'ops.container.go-api',
       'ops.container.next',
       'ops.container.node-api',
       'ops.container.nuxt',

@@ -158,6 +158,9 @@ export function syntaxForPath(filePath: string): MarkerSyntax {
   if (/\.(ya?ml)$/.test(filePath)) return MARKER_SYNTAX.yaml;
   if (/\.(sh|bash)$/.test(filePath)) return MARKER_SYNTAX.shell;
   if (/\.toml$/.test(filePath)) return MARKER_SYNTAX.toml;
+  // go.mod's comment syntax is `//`, which the default below already produces — but relying on
+  // that is a coincidence waiting to break, so the file is matched deliberately.
+  if (/(^|\/)go\.mod$/.test(filePath)) return MARKER_SYNTAX.go;
   // The default is `//`, which is correct for TypeScript and wrong — silently — for any
   // `#`-commented format not listed above. It surfaces as MissingMarkerError rather than as a
   // dropped contribution, because the marker region is looked up before anything is written.

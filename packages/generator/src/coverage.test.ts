@@ -36,7 +36,7 @@ const IMPLEMENTED = {
   frameworks: ['nextjs-app', 'vite-react', 'nuxt'],
   stylings: ['tailwind-shadcn', 'css-modules', 'mui'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
-  runtimes: ['node-ts', 'python-fastapi'],
+  runtimes: ['node-ts', 'python-fastapi', 'go-gin'],
   paradigms: ['rest'],
   databases: ['postgres', 'none'],
   /**

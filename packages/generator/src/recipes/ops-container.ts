@@ -21,6 +21,7 @@ import { VITE_REACT_RECIPE_ID } from './ui-vite-react.js';
 import { NUXT_RECIPE_ID } from './ui-nuxt.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import { PYTHON_FASTAPI_RECIPE_ID, PYTHON_PORT } from './api-python-fastapi.js';
+import { GO_GIN_RECIPE_ID, GO_PORT } from './api-go-gin.js';
 import type { Recipe } from '../types.js';
 
 const containersEnabled = (spec: ProjectSpec): boolean => spec.ops.container.strategy !== 'none';
@@ -299,6 +300,57 @@ export const containerPythonApiRecipe: Recipe = {
       '',
       'Dependencies install from `uv.lock` with `--frozen`, which fails rather than silently',
       're-resolving when the lockfile is out of date with `pyproject.toml`. Commit `uv.lock`.',
+    ].join('\n'),
+  }),
+};
+
+export const CONTAINER_GO_API_RECIPE_ID = 'ops.container.go-api';
+
+/*
+ * Same probe paths as the other two APIs, a third port — the case the contract exists for. 8080
+ * matches the nginx SPA image's port, which is fine: they are different images with different
+ * probe paths and different UIDs, and the chart asks the contract rather than assuming.
+ */
+registerDeployableContract({
+  recipeId: CONTAINER_GO_API_RECIPE_ID,
+  port: GO_PORT,
+  livenessPath: '/health',
+  readinessPath: '/ready',
+  runAsUser: 65532,
+  writablePaths: ['/tmp'],
+});
+
+export const containerGoApiRecipe: Recipe = {
+  id: CONTAINER_GO_API_RECIPE_ID,
+  phase: 'integration',
+  layer: 'api',
+  requires: [GO_GIN_RECIPE_ID],
+
+  appliesTo: (spec) => containersEnabled(spec) && spec.api?.runtime === 'go-gin',
+
+  files: (ctx) =>
+    loadTemplateDir(templatePath('ops', 'container', 'go-api'), ctx, CONTAINER_GO_API_RECIPE_ID, {
+      runtime: { port: GO_PORT },
+    }),
+
+  readme: () => ({
+    order: README_ORDER.deployment,
+    heading: 'Container (api)',
+    body: [
+      '```bash',
+      'docker build -t api:local apps/api    # or . in an API-only project',
+      '```',
+      '',
+      'Multi-stage, ending on `gcr.io/distroless/static-debian12:nonroot` — not even a libc. CGO',
+      'is off and pgx is pure Go, so the image is ca-certificates, tzdata and one static binary,',
+      'running as UID 65532 with a read-only root filesystem in Kubernetes.',
+      '',
+      'The build uses `-trimpath` so panics do not leak the build machine’s paths, and `-s -w` to',
+      'strip symbol tables the binary never needs in production.',
+      '',
+      'Module download is a separate layer from the build, keyed on `go.mod`/`go.sum`, so it',
+      'caches across source-only changes. Commit `go.sum` — until then the build resolves modules',
+      'fresh each time and is not reproducible.',
     ].join('\n'),
   }),
 };

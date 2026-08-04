@@ -8,12 +8,13 @@
  */
 
 import { templatePath } from '@idp/templates';
-import { dependencyMap, type ProjectSpec } from '@idp/core';
+import { dependencyMap, goRequirements, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
 import { MIDDLEWARE_PRIORITY } from '../codemod/markers.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import { PYTHON_FASTAPI_RECIPE_ID } from './api-python-fastapi.js';
+import { GO_GIN_RECIPE_ID } from './api-go-gin.js';
 import type { Recipe } from '../types.js';
 
 export const REST_RECIPE_ID = 'api.paradigm.rest';
@@ -85,6 +86,91 @@ export const restRecipe: Recipe = {
   }),
 };
 
+export const REST_GO_RECIPE_ID = 'api.paradigm.rest-go';
+
+/**
+ * The same paradigm for Gin, via huma.
+ *
+ * Gin alone validates nothing and documents nothing. The mainstream Go answer — swag annotations
+ * in code comments — produces a document nothing checks against the handlers it describes, which
+ * is a hand-maintained spec wearing a generated one's clothes. huma derives validation, the 422
+ * response and the OpenAPI 3.1 document from the same Go structs: the property the other two
+ * runtimes are built around, and the reason this recipe exists at all.
+ */
+export const restGoRecipe: Recipe = {
+  id: REST_GO_RECIPE_ID,
+  phase: 'feature',
+  layer: 'api',
+  requires: [GO_GIN_RECIPE_ID],
+
+  appliesTo: (spec: ProjectSpec) => spec.api?.paradigm === 'rest' && spec.api.runtime === 'go-gin',
+
+  files: (ctx) =>
+    loadTemplateDir(templatePath('api', 'paradigm', 'rest-go'), ctx, REST_GO_RECIPE_ID),
+
+  codemods: (ctx) => [
+    {
+      file: 'go.mod',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'dependencies',
+        lines: goRequirements(['github.com/danielgtaylor/huma/v2']),
+        priority: MIDDLEWARE_PRIORITY.openapi,
+        recipeId: REST_GO_RECIPE_ID,
+      },
+    },
+    {
+      file: 'internal/server/server.go',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'routes',
+        // The handle is discarded until a route module needs it — Install's side effect (mounting
+        // /docs and /openapi.json) is the part every project wants immediately.
+        lines: ['_ = api.Install(r)'],
+        priority: MIDDLEWARE_PRIORITY.openapi,
+        recipeId: REST_GO_RECIPE_ID,
+      },
+    },
+    {
+      file: 'internal/server/server.go',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'imports',
+        lines: [`"github.com/${ctx.spec.meta.repo.org}/${ctx.spec.meta.slug}/internal/api"`],
+        priority: MIDDLEWARE_PRIORITY.openapi,
+        recipeId: REST_GO_RECIPE_ID,
+      },
+    },
+  ],
+
+  readme: () => ({
+    order: README_ORDER.backend,
+    heading: 'API Documentation',
+    body: [
+      '| Path | What |',
+      '| --- | --- |',
+      '| `/docs` | Interactive API reference |',
+      '| `/openapi.json` | OpenAPI 3.1 document |',
+      '',
+      'The document is generated from Go structs via huma, never hand-written. Register an',
+      'operation and it appears in the docs automatically, with request validation and the',
+      'response schema derived from the same types:',
+      '',
+      '```go',
+      'apiHandle := api.Install(r)',
+      'huma.Register(apiHandle, huma.Operation{',
+      '\tOperationID: "list-widgets",',
+      '\tMethod:      http.MethodGet,',
+      '\tPath:        "/widgets",',
+      '}, listWidgets)',
+      '```',
+      '',
+      '`/openapi.json` is a contract: the Service Catalog fetches the document from exactly that',
+      'path, so changing it removes this service’s docs from the portal.',
+    ].join('\n'),
+  }),
+};
+
 export const REST_PYTHON_RECIPE_ID = 'api.paradigm.rest-python';
 
 /**
@@ -145,6 +231,7 @@ export const restPythonRecipe: Recipe = {
       '',
       '```python',
       'from app.schemas.common import COMMON_RESPONSES, Page, PaginationQuery',
+      '',
       '',
       '@router.get("/widgets", response_model=Page[Widget], responses=COMMON_RESPONSES)',
       'async def list_widgets(query: Annotated[PaginationQuery, Query()]) -> Page[Widget]: ...',

@@ -27,11 +27,13 @@ import { frameworkContract, requiresFramework } from '../framework-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import { PYTHON_FASTAPI_RECIPE_ID } from './api-python-fastapi.js';
+import { GO_GIN_RECIPE_ID } from './api-go-gin.js';
 import type { CodemodOp, Recipe } from '../types.js';
 
 export const API_PERMISSIONS_RECIPE_ID = 'api.policy.permissions';
 export const UI_PERMISSIONS_RECIPE_ID = 'ui.policy.permissions';
 export const PYTHON_PERMISSIONS_RECIPE_ID = 'api.policy.permissions-python';
+export const GO_PERMISSIONS_RECIPE_ID = 'api.policy.permissions-go';
 
 const TEMPLATE = () => templatePath('api', 'policy', 'permissions');
 
@@ -174,6 +176,46 @@ export const pythonPermissionsRecipe: Recipe = {
       '',
       'These strings are the database’s role values verbatim — there is deliberately no mapping',
       'between what is stored and what the policy checks.',
+    ].join('\n'),
+  }),
+};
+
+export const goPermissionsRecipe: Recipe = {
+  id: GO_PERMISSIONS_RECIPE_ID,
+  phase: 'feature',
+  layer: 'api',
+  requires: [GO_GIN_RECIPE_ID],
+
+  appliesTo: (spec) => spec.api?.runtime === 'go-gin' && policyNeeded(spec),
+
+  files: (ctx) =>
+    loadTemplateDir(
+      templatePath('api', 'policy', 'permissions-go'),
+      ctx,
+      GO_PERMISSIONS_RECIPE_ID,
+      {
+        policyPath: 'internal/permissions/permissions.go',
+      },
+    ),
+
+  readme: () => ({
+    order: README_ORDER.backend,
+    heading: 'Roles and permissions',
+    body: [
+      '`internal/permissions` is the single definition of who may do what. When the project also',
+      'has a browser app, the same policy is emitted there in TypeScript — two enforcement points,',
+      'one policy, checked identical by the generator’s own test suite rather than by convention.',
+      '',
+      '| Role | Permissions |',
+      '| --- | --- |',
+      '| `viewer` | `read` |',
+      '| `editor` | `read`, `write`, `delete` |',
+      '| `admin` | everything |',
+      '| `owner` | everything |',
+      '',
+      '`owner` and `admin` hold the same permissions. The difference is structural: an organisation',
+      'must always have at least one active owner, and the API refuses any change that would remove',
+      'the last one.',
     ].join('\n'),
   }),
 };

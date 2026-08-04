@@ -118,6 +118,27 @@ jobs:
       - run: uv run pytest
       # No build step. There is no compilation, and `uv build` would produce a wheel the container
       # never installs — the image copies the venv and the source directly.
+<% } else if (runtime.language === 'go') { -%>
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: '<%= spec.ui ? "apps/api/" : "" %>go.mod'
+      # A freshly scaffolded repository has no go.sum until your first `go mod tidy`, and
+      # `go build` refuses to fetch modules without one. This resolves once on the scaffold
+      # commit and becomes fully locked the moment you commit go.sum.
+      - name: Resolve modules
+        run: |
+          if [ ! -f go.sum ]; then go mod tidy; fi
+      # `gofmt -l` lists rather than fixes: CI must report a formatting drift, not silently
+      # rewrite a checkout nobody keeps.
+      - name: Check formatting
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "gofmt would reformat:"; echo "$UNFORMATTED"; exit 1
+          fi
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./...
 <% } -%>
 <% } -%>
 

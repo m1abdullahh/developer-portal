@@ -357,6 +357,7 @@ export const pyAuthJwtRecipe: Recipe = {
       '@router.get("/private")',
       'async def private(user: AuthenticatedUser = Depends(current_user)): ...',
       '',
+      '',
       '@router.delete("/thing/{id}", dependencies=[Depends(require_permission("delete"))])',
       'async def remove(id: str): ...',
       '```',

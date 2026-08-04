@@ -6,8 +6,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
+
+# Starlette's HTTPException, not FastAPI's — and the difference is a working 404 envelope.
+# FastAPI's is a *subclass* of this one, and a route that matches nothing raises the parent
+# directly, so a handler registered on the subclass never sees it: unmatched routes fell through
+# to the framework default and answered {"detail": "Not Found"} while every handled error used
+# the shared envelope. Registering on the parent catches both.
+from starlette.exceptions import HTTPException
 
 from app.config import settings
 from app.logging_config import configure_logging

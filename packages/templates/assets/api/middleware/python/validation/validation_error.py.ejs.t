@@ -30,7 +30,9 @@ def install_validation_errors(app: FastAPI) -> None:
         for error in exc.errors():
             # Drop the first element: it names the request part ("body", "query", "path"), not the
             # field. Keeping it would produce "body.email" where the caller sent "email".
-            location = [str(part) for part in error["loc"][1:]] or [str(part) for part in error["loc"]]
+            location = [str(part) for part in error["loc"][1:]]
+            if not location:
+                location = [str(part) for part in error["loc"]]
             details.append({"field": ".".join(location), "message": error["msg"]})
 
         return JSONResponse(

@@ -20,18 +20,21 @@ def test_health_reports_ok() -> None:
     assert response.json()["service"] == "<%= spec.meta.slug %>"
 
 
-def test_ready_reports_ready_with_no_checks_registered() -> None:
-    """An API with no dependencies is ready as soon as it is up.
+def test_ready_answers_rather_than_hanging() -> None:
+    """Readiness must answer — 200 with no failing checks, 503 with one.
 
-    The ``idp:readiness-checks`` region is empty until a recipe that owns a dependency fills it,
-    and an empty check set must mean ready rather than unavailable — otherwise a service with no
-    database would never join its own Service.
+    Deliberately not ``== 200``: this same test ships into projects whose ORM recipe registers a
+    database check, and in a test run there is no database to reach. What the suite can assert
+    everywhere is the shape of the behaviour; whether /ready disagrees with /health under a real
+    outage is the smoke harness's job, with a real environment.
     """
     with TestClient(create_app()) as client:
         response = client.get("/ready")
 
-    assert response.status_code == 200
-    assert response.json()["status"] == "ready"
+    assert response.status_code in (200, 503)
+    body = response.json()
+    assert body["status"] in ("ready", "unavailable")
+    assert (response.status_code == 200) == (body["status"] == "ready")
 
 
 def test_unknown_route_uses_the_shared_error_envelope() -> None:

@@ -184,23 +184,53 @@ and all four page modules, each smoke-verified.
   reverse of the order it is added, so the Python recipes emit their calls in **descending**
   priority to land the same request path the Node runtime has.
 
-- [ ] `go-gin` runtime recipe + marker-anchor injection
+- [x] `go-gin` runtime recipe + marker-anchor injection — complete and enabled in the wizard.
+      Runtime with graceful shutdown, all five middleware, REST via **huma** (structs generate
+      the OpenAPI 3.1 document and `/docs`, the same one-definition property Zod and Pydantic
+      give the other runtimes), GORM with **goose** migrations embedded in the binary, and a
+      distroless _static_ image — CGO off, pgx pure Go, so the final layer is one binary plus
+      ca-certificates.
+
+  The runtime contract held: nothing above the runtime learned anything new to accommodate Go.
+  The Go-specific problem was imports — file-level, unused-is-an-error, so every file receiving
+  cross-recipe contributions declares an `idp:imports` region and each contribution carries its
+  import beside the code using it. gofmt's struct-field alignment forced pre-aligned field
+  contributions, verified against `gofmt -d` rather than guessed.
+
+  Verified locally with a real toolchain (go 1.26.5): the generated project compiles, vets,
+  is gofmt-clean, passes its tests, boots, and serves `/health`, `/ready` (503 with the database
+  down, correctly disagreeing with liveness), `/openapi.json` and `/docs`.
+
 - [ ] Paradigms: `graphql` (Apollo 4 / Strawberry / gqlgen, all with DataLoader), `trpc` (Node-only, gated)
-- [ ] ORMs: Drizzle, Mongoose, SQLAlchemy, Beanie, GORM, sqlc, mongo-go — SQLModel done
+- [ ] ORMs: Drizzle, Mongoose, SQLAlchemy, Beanie, sqlc, mongo-go — SQLModel and GORM done
 - [ ] Redis cache-layer recipe across all three runtimes
-- [x] All 5 middleware recipes ported to Python with a uniform error envelope; Go outstanding.
+- [x] All 5 middleware recipes ported to Python **and Go** with a uniform error envelope.
       The envelope, the variable names and the effective ordering are asserted across runtimes by
       `runtime-contract.test.ts` rather than left to convention — a chart setting `CORS_ORIGINS`
       for a service reading `CORS_ALLOWED_ORIGINS` boots, serves and fails only in production.
-- [x] Python container recipe (distroless python3); Go outstanding.
-      The builder is pinned to `python:3.11-slim-bookworm` to match the interpreter in
+      LOG_LEVEL's _values_ turned out to be the drift: pino says `warn`/`fatal`, the stdlib says
+      `warning`/`critical`, and one Helm values file sets it for every service — so each runtime
+      accepts the union.
+- [x] Python + Go container recipes (distroless python3 / distroless static).
+      The Python builder is pinned to `python:3.11-slim-bookworm` to match the interpreter in
       `gcr.io/distroless/python3-debian12` — a venv built against another minor version copies in
       fine and then fails to import anything with a compiled extension, at container start.
-- [x] Shared `permissions` policy emitted for Python as well as TypeScript. The two files cannot be
-      byte-identical, so `policy-contract.test.ts` parses both and compares the role/permission
-      matrix instead — dropping the assertion is how the three-vocabulary bug happened before.
-- [ ] Wizard: runtime-driven ORM and paradigm gating with stated reasons — `python-fastapi` is out
-      of "coming in P3" and selectable; the gating rules themselves are still to build.
+- [x] Shared `permissions` policy emitted for all three runtimes. The files cannot be
+      byte-identical across languages, so `policy-contract.test.ts` parses each and compares the
+      role/permission matrix instead — dropping the assertion is how the three-vocabulary bug
+      happened before.
+- [x] Smoke harness taught to see non-Node layers. `layersOf` recognised only `package.json`, so
+      a generated FastAPI or Gin project had **zero layers**: the harness generated it, found
+      nothing it knew how to install, and passed — a green check reading as coverage. It now
+      drives uv and go through the same commands the generated CI runs, and in CI
+      `SMOKE_REQUIRE_TOOLCHAINS=1` turns a missing toolchain into a failure rather than a silent
+      skip. Its first run caught eight ruff findings, a 404 envelope bug (FastAPI raises
+      route-not-found as _starlette's_ HTTPException, and a handler on the subclass never sees
+      it) and the LOG_LEVEL vocabulary drift.
+- [ ] Wizard: runtime-driven ORM and paradigm gating with stated reasons — both new runtimes are
+      out of "coming in P3" and selectable; the ORM-implementedness gating is still to build
+      (`sqlalchemy`, `beanie`, `sqlc`, `mongo-go`, `drizzle`, `mongoose` are offered by the
+      compatibility matrix but have no recipe yet).
 
 **Gate:** every valid runtime × paradigm × ORM combination passes T2. REST projects emit a
 spectral-clean OpenAPI 3.0 document. Migrations apply against a fresh DB in CI.
