@@ -16,6 +16,7 @@ import {
   API_PARADIGMS,
   API_RUNTIMES,
   DATABASES,
+  ORMS,
   UI_FRAMEWORKS,
   UI_MODULES,
   UI_STATES,
@@ -39,6 +40,14 @@ const IMPLEMENTED = {
   runtimes: ['node-ts', 'python-fastapi', 'go-gin'],
   paradigms: ['rest'],
   databases: ['postgres', 'none'],
+  /**
+   * Two ORMs per runtime for Postgres. The mongo ORMs (mongoose, beanie, mongo-go) are absent
+   * because the mongodb *database* is absent — they are unreachable through the wizard until it
+   * ships, and listing them here would claim recipes that do not exist. sqlc is reachable and
+   * deliberately gated in the wizard with a stated reason: its SQL-first codegen workflow needs
+   * the sqlc CLI wired into generation, which is its own piece of work.
+   */
+  orms: ['prisma', 'drizzle', 'sqlmodel', 'sqlalchemy', 'gorm', 'none'],
   /**
    * Page modules ship as *recipes*, and `userManagement` ships as two of them — one per layer,
    * because a recipe declares a single layer and this module needs files under both. The ledger
@@ -221,6 +230,59 @@ describe('every implemented page module generates', () => {
     '%s is absent from the registry until the ledger says otherwise',
     (module) => {
       const orphans = allRecipeIds.filter((id) => id.endsWith(`.module.${kebab(module)}`));
+      expect(orphans).toEqual([]);
+    },
+  );
+});
+
+describe('every implemented ORM generates its data layer', () => {
+  /** The runtime each ORM belongs to, and the file whose presence proves the layer exists. */
+  const ORM_CASES = [
+    { orm: 'prisma', runtime: 'node-ts', evidence: 'prisma/schema.prisma' },
+    { orm: 'drizzle', runtime: 'node-ts', evidence: 'drizzle.config.ts' },
+    { orm: 'sqlmodel', runtime: 'python-fastapi', evidence: 'alembic.ini' },
+    { orm: 'sqlalchemy', runtime: 'python-fastapi', evidence: 'app/db/base.py' },
+    { orm: 'gorm', runtime: 'go-gin', evidence: 'internal/db/db.go' },
+  ] as const;
+
+  it.each(ORM_CASES)('$orm emits a data layer and declares DATABASE_URL', async (c) => {
+    const spec = spineSpec({
+      meta: { slug: `coverage-${c.orm}` },
+      ui: null,
+      api: { runtime: c.runtime, paradigm: 'rest', database: 'postgres', orm: c.orm },
+    } as Parameters<typeof spineSpec>[0]);
+    const { files } = await runPipeline(spec, { registry });
+
+    expect(
+      files.some((f) => f.path === c.evidence),
+      `${c.orm} generated no ${c.evidence}`,
+    ).toBe(true);
+
+    /*
+     * The bug this whole ledger exists to prevent: an ORM the wizard offers whose recipe does
+     * not exist generates a service with a database selected and no data layer — DATABASE_URL
+     * undeclared, no readiness check, nothing. It boots. Nothing fails until the first query.
+     */
+    const envExample = String(files.find((f) => f.path === '.env.example')?.content);
+    expect(envExample).toContain('DATABASE_URL');
+
+    const compose = files.find((f) => f.path === 'docker-compose.yml');
+    expect(compose, `${c.orm} shipped no local Postgres service`).toBeDefined();
+  });
+
+  it('every ledger orm except none maps to a registered recipe id', () => {
+    for (const orm of IMPLEMENTED.orms) {
+      if (orm === 'none') continue;
+      expect(allRecipeIds).toContain(`api.db.postgres-${orm}`);
+    }
+  });
+
+  it.each(ORMS.filter((o) => !(IMPLEMENTED.orms as readonly string[]).includes(o)))(
+    '%s has no recipe until the ledger says otherwise',
+    (orm) => {
+      const orphans = allRecipeIds.filter(
+        (id) => id.startsWith('api.db.') && id.endsWith(`-${orm}`),
+      );
       expect(orphans).toEqual([]);
     },
   );

@@ -202,7 +202,23 @@ and all four page modules, each smoke-verified.
   down, correctly disagreeing with liveness), `/openapi.json` and `/docs`.
 
 - [ ] Paradigms: `graphql` (Apollo 4 / Strawberry / gqlgen, all with DataLoader), `trpc` (Node-only, gated)
-- [ ] ORMs: Drizzle, Mongoose, SQLAlchemy, Beanie, sqlc, mongo-go — SQLModel and GORM done
+- [x] ORMs: two per runtime for Postgres — Prisma + **Drizzle** (Node), SQLModel + **SQLAlchemy**
+      (Python), GORM (Go). Each smoke-verified end to end. The remaining four are gated honestly
+      rather than left as holes: `sqlc` is disabled in the wizard with a stated reason (its
+      SQL-first codegen needs the sqlc CLI wired into generation), and the three mongo ODMs
+      (`mongoose`, `beanie`, `mongo-go`) are unreachable until the `mongodb` database option
+      ships.
+
+  The gating itself was the bug worth fixing: ORMs had compatibility gating
+  (`ormUnavailableReason`) and nothing else, so the wizard offered `drizzle`, `sqlalchemy` and
+  `sqlc` for Postgres with no recipe behind them — a selection that generated a service with a
+  database chosen and **no data layer**: no `DATABASE_URL`, no readiness check, nothing. It
+  boots, and nothing fails until the first query. ORMs now have the same `OptionMeta` table and
+  coming-soon surface as every other option, plus a coverage ledger
+  (`IMPLEMENTED.orms`) asserting each implemented ORM emits its data layer, declares
+  `DATABASE_URL` and ships the local Postgres compose service — and that no recipe exists for
+  anything the ledger does not claim.
+
 - [ ] Redis cache-layer recipe across all three runtimes
 - [x] All 5 middleware recipes ported to Python **and Go** with a uniform error envelope.
       The envelope, the variable names and the effective ordering are asserted across runtimes by

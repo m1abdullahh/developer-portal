@@ -8,7 +8,6 @@ import {
   ORMS,
   availableOrms,
   availableParadigms,
-  ormLabel,
   ormUnavailableReason,
   paradigmUnavailableReason,
 } from '@idp/core';
@@ -18,6 +17,7 @@ import {
   API_RUNTIMES,
   AUTH_MODES,
   DATABASES,
+  ORM_OPTIONS,
   comingSoonReason,
 } from '../../lib/labels';
 import { Banner, OptionCard, Section, Toggle } from '../ui';
@@ -142,13 +142,26 @@ export function Step3Api() {
           <div className="grid gap-3 sm:grid-cols-3">
             {ORMS.filter((orm) => orm !== 'none').map((orm) => {
               const incompatible = !orms.includes(orm);
+              const meta = ORM_OPTIONS[orm];
+              /*
+               * Two independent reasons to be disabled, and the message must name the right one.
+               * Compatibility ("Prisma is a Node.js library") comes from core and depends on the
+               * selections; implementedness ("sqlc arrives in P3") is presentation state. An
+               * option failing both shows the compatibility reason — no point advertising a
+               * timeline for something this runtime could never use.
+               */
+              const compatReason = ormUnavailableReason(api.runtime, api.database, orm);
               return (
                 <OptionCard
                   key={orm}
-                  title={ormLabel(orm)}
+                  title={meta.label}
+                  description={meta.description}
                   selected={api.orm === orm}
-                  disabled={incompatible}
-                  disabledReason={ormUnavailableReason(api.runtime, api.database, orm) ?? undefined}
+                  disabled={incompatible || Boolean(meta.comingIn)}
+                  disabledReason={
+                    incompatible ? (compatReason ?? undefined) : comingSoonReason(meta)
+                  }
+                  badge={incompatible ? undefined : meta.comingIn}
                   onSelect={() => setOrm(orm)}
                 />
               );

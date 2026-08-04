@@ -91,6 +91,13 @@ jobs:
       - run: npx prisma generate
       - name: Apply migrations
         run: npx prisma migrate deploy
+<% } else if (spec.api.orm === 'drizzle') { -%>
+      # Guarded: a freshly scaffolded repository has no drizzle/ journal until the first
+      # `npm run db:generate`, and drizzle-kit errors on the missing directory rather than
+      # treating it as zero migrations.
+      - name: Apply migrations
+        run: |
+          if [ -d drizzle ]; then npx drizzle-kit migrate; fi
 <% } -%>
       - run: npm run lint
       - run: npm run typecheck

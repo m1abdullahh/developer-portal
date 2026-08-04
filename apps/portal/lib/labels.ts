@@ -14,6 +14,7 @@ import type {
   Database,
   DeploymentTarget,
   IngressController,
+  Orm,
   Registry,
   RepoVisibility,
   SyncPolicy,
@@ -151,6 +152,47 @@ export const DATABASES: Record<Database, OptionMeta> = {
   postgres: { label: 'PostgreSQL', description: 'Relational, with migrations.' },
   mongodb: { label: 'MongoDB', description: 'Document store.', comingIn: 'P2' },
   none: { label: 'None', description: 'A stateless service.' },
+};
+
+/**
+ * ORMs get presentation metadata like every other option, and for the same reason it took this
+ * long to notice they lacked it: compatibility gating (`ormUnavailableReason`) looked like the
+ * whole story, and it is only half. Compatibility says "Prisma cannot run on Go"; this table says
+ * "sqlc is not built yet". Without the second half, the wizard offered sqlc for a Go project and
+ * the generator emitted a service with a DATABASE_URL and no data layer — silently.
+ *
+ * `label` deliberately restates `ormLabel()` from core rather than importing it, matching how
+ * every other table here works: `Record<Orm, OptionMeta>` fails to compile when the enum gains a
+ * value, which is the moment someone must decide whether the new option is built or coming.
+ */
+export const ORM_OPTIONS: Record<Orm, OptionMeta> = {
+  prisma: { label: 'Prisma', description: 'Schema-first with a generated, fully typed client.' },
+  drizzle: {
+    label: 'Drizzle ORM',
+    description: 'The schema is TypeScript; migrations are SQL diffed from it.',
+  },
+  mongoose: {
+    label: 'Mongoose',
+    description: 'The standard MongoDB ODM for Node.',
+    comingIn: 'P2',
+  },
+  sqlmodel: {
+    label: 'SQLModel',
+    description: 'One class is both the table and the Pydantic model.',
+  },
+  sqlalchemy: {
+    label: 'SQLAlchemy 2.x',
+    description: 'Typed models with separate Pydantic schemas at the boundary.',
+  },
+  beanie: { label: 'Beanie (async ODM)', description: 'MongoDB documents.', comingIn: 'P2' },
+  gorm: { label: 'GORM', description: 'Chainable typed queries; SQL migrations via goose.' },
+  sqlc: {
+    label: 'sqlc',
+    description: 'SQL-first: you write queries, it generates the typed Go code.',
+    comingIn: 'P3',
+  },
+  'mongo-go': { label: 'mongo-go-driver', description: 'MongoDB documents.', comingIn: 'P2' },
+  none: { label: 'None', description: 'No data access layer.' },
 };
 
 export const AUTH_MODES: Record<AuthMode, OptionMeta> = {

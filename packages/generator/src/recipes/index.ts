@@ -36,7 +36,9 @@ import { pythonFastapiRecipe } from './api-python-fastapi.js';
 import { goGinRecipe } from './api-go-gin.js';
 import { restRecipe, restPythonRecipe, restGoRecipe } from './api-rest.js';
 import { prismaRecipe } from './api-prisma.js';
+import { drizzleRecipe } from './api-drizzle.js';
 import { sqlmodelRecipe } from './api-sqlmodel.js';
+import { sqlalchemyRecipe } from './api-sqlalchemy.js';
 import { gormRecipe } from './api-gorm.js';
 import {
   apiPermissionsRecipe,
@@ -86,7 +88,9 @@ export * from './api-python-fastapi.js';
 export * from './api-go-gin.js';
 export * from './api-rest.js';
 export * from './api-prisma.js';
+export * from './api-drizzle.js';
 export * from './api-sqlmodel.js';
+export * from './api-sqlalchemy.js';
 export * from './api-gorm.js';
 export * from './policy-permissions.js';
 export * from './api-module-user-management.js';
@@ -135,8 +139,12 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   restRecipe,
   restPythonRecipe,
   restGoRecipe,
+  // Two ORMs per runtime for Postgres; exactly one applies to any spec — `appliesTo` keys on
+  // `api.orm` — so the shared compose template is never claimed twice.
   prismaRecipe,
+  drizzleRecipe,
   sqlmodelRecipe,
+  sqlalchemyRecipe,
   gormRecipe,
   // The role and permission policy, emitted into whichever layers enforce it.
   apiPermissionsRecipe,

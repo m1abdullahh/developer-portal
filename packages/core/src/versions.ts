@@ -115,6 +115,11 @@ export const GENERATED_VERSIONS = {
   '@prisma/adapter-pg': '7.9.1',
   pg: '8.22.0',
   '@types/pg': '8.20.0',
+  // The second Node ORM (P3). drizzle-orm is the runtime, drizzle-kit the CLI that generates and
+  // applies SQL migrations from the TypeScript schema — kit is a devDependency because the
+  // running service never migrates itself.
+  'drizzle-orm': '0.45.2',
+  'drizzle-kit': '0.31.10',
 
   // ── API: billing (P2 stripeBilling) ───────────────────────────────────────
   // The SDK is not optional for this module: verifying a webhook signature means recomputing an
@@ -152,6 +157,10 @@ export const PYTHON_VERSIONS = {
   // Split out of pydantic in v2. This is the analogue of the Zod schema in `src/config/env.ts` —
   // it validates the environment once at import and fails the process at boot with the key named.
   'pydantic-settings': '2.14.2',
+  // Pinned directly for the plain-SQLAlchemy ORM option. The sqlmodel option pulls it in
+  // transitively, but a transitive pin is not a pin — sqlmodel could float its constraint and
+  // two generations of the same spec would resolve different SQLAlchemy versions.
+  sqlalchemy: '2.0.51',
   // Linter and formatter in one binary, which is why the generated project has no separate black
   // or isort. Ruff is pre-1.0 and does make breaking changes in minor releases, so the pin is
   // exact for the same reason every other pin here is.

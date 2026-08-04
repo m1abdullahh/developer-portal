@@ -78,6 +78,26 @@ const CASES = {
   },
 
   /*
+   * The second ORM per runtime (P3.4). Each rides its runtime's fixture with only the ORM
+   * swapped, so a failure names the data layer rather than the runtime.
+   */
+  'api-drizzle': {
+    description: 'Fastify with Drizzle — the TypeScript-schema data layer builds and boots',
+    fixture: 'spineSpec',
+    override: {
+      ui: null,
+      api: { orm: 'drizzle' },
+      ops: { k8s: { enabled: false }, gitops: { enabled: false } },
+      meta: { slug: 'smoke-api-drizzle', deploymentTarget: 'cloudflare-vercel' },
+    },
+  },
+  'api-sqlalchemy': {
+    description: 'FastAPI with plain SQLAlchemy — separate Base models and Pydantic schemas',
+    fixture: 'apiOnlyPythonSpec',
+    override: { api: { orm: 'sqlalchemy' }, meta: { slug: 'smoke-api-sqlalchemy' } },
+  },
+
+  /*
    * One case per state library (P2.1).
    *
    * These are UI-only on purpose: the API half is identical across all four and installing
@@ -762,7 +782,9 @@ async function smokeCase(name, workspaceRoot) {
     if (installed === null && currentCase.failed) return;
 
     if (layer.scripts['db:generate']) {
-      await step(`${label}: prisma generate`, async () => {
+      // `db:generate` is Prisma's client generation or Drizzle's migration diff, depending on
+      // the ORM — the script name is the contract, so the harness need not know which.
+      await step(`${label}: db:generate`, async () => {
         const { code, output } = await run('npm', ['run', 'db:generate'], {
           cwd: dir,
           timeout: 300_000,
