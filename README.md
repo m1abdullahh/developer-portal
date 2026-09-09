@@ -11,12 +11,13 @@ YAML or Docker configuration.
 > stream, and a repository appears with its catalog entry. Generated projects are proven to
 > install, build and boot by `npm run smoke`.
 >
-> **Not yet done:** the Phase 1 gate itself — provisioning a real repository in a GitHub
-> organisation, timed. That needs GitHub OAuth and App credentials; until they are set the
-> portal runs against the filesystem driver, which writes projects to a local directory. Docker
-> and Helm output is generated and structurally validated but never executed locally, and only
-> the spine options have generator recipes: the rest are shown disabled and labelled with the
-> phase they arrive in. Roadmap: [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
+> **Phase 1 gate: passed on 2026-09-09.** A real repository was provisioned into the GitHub
+> organisation through the wizard. Wizard start to green CI took **5 min 46 s** against the
+> ten-minute target, and the clone installed, built and booted, with both container images built
+> locally. Still open: GraphQL, tRPC, MongoDB, sqlc and the Redis cache have no recipes yet and
+> are shown disabled with the phase they arrive in, and Phase 4 (catalog depth, health
+> reconciler, OpenAPI viewer, dogfood) has not started. Details and the measured run:
+> [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start
 

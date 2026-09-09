@@ -1,11 +1,11 @@
-208c6a1246f5  .github/workflows/cd.yml
-5456ef4a05cb  .github/workflows/ci.yml
+cc1a8c260f0d  .github/workflows/cd.yml
+ce2c5036d3c6  .github/workflows/ci.yml
 3f1a9979c9fb  .gitignore
 07f1b7b2161c  apps/api/.dockerignore
 7537d59a393c  apps/api/.env.example
 9fa7461881bb  apps/api/Dockerfile
 a92f4e4328f2  apps/api/eslint.config.mjs
-2802756523e0  apps/api/package.json
+fdf307279eb4  apps/api/package.json
 f75f98208719  apps/api/prisma.config.ts
 5e33b5118644  apps/api/prisma/schema.prisma
 2bc5f2732b1a  apps/api/src/config/env.ts
@@ -50,7 +50,7 @@ e7fcee24c876  apps/web/components/ui/button.tsx
 d089ac46186b  apps/web/components/ui/select.tsx
 39e65d077ca8  apps/web/components/ui/table.tsx
 f525e881bbd4  apps/web/components/ui/toast.tsx
-8506b824af37  apps/web/Dockerfile
+6e24e68a4b63  apps/web/Dockerfile
 8094f8da2148  apps/web/eslint.config.mjs
 a9e7128fa1c7  apps/web/lib/cn.ts
 75dc6f55a15f  apps/web/lib/env.ts
@@ -58,7 +58,7 @@ fb2d0d220316  apps/web/lib/permissions.ts
 5f33281bc0d2  apps/web/lib/settings-api.ts
 2eac25ad8929  apps/web/lib/users-api.ts
 353c24e37bb9  apps/web/next.config.ts
-714877dd88eb  apps/web/package.json
+bd5c0ae07467  apps/web/package.json
 726ed84521c5  apps/web/postcss.config.mjs
 78aa3d78762f  apps/web/public/.gitkeep
 fbdfab3c564c  apps/web/stores/useUiStore.ts
@@ -82,5 +82,5 @@ dd40c3cf25fb  gitops/application-dev.yaml
 fa5e1df566f9  gitops/application-prod.yaml
 f436785b080b  gitops/application-staging.yaml
 b4a35ffbc19c  gitops/project.yaml
-bc5f0e85d3e0  README.md
+47b57a20e2ff  README.md
 893a5b37470a  SECRETS.md

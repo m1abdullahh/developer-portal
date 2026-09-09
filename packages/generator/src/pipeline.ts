@@ -28,6 +28,7 @@ import { verifyTree } from './stages/verify.js';
 import type {
   CodemodOp,
   Diagnostic,
+  EnvVar,
   GenerateResult,
   RecipeContext,
   StageEvent,
@@ -96,11 +97,17 @@ export async function runPipeline(
 
   const layout = computeLayout(spec);
 
+  // Env contributions, keyed by layer prefix (the same grouping as `.env.example`). Filled by the
+  // pre-pass at the start of render, read by recipes through `ctx.envVars` — see RecipeContext.
+  const envContributions = new Map<string, EnvVar[]>();
+  const envByRecipe = new Map<string, readonly EnvVar[]>();
+
   const ctx: RecipeContext = {
     spec,
     paths: layout,
     clock: options.clock ?? defaultClock(),
     ids: options.ids ?? defaultIds(),
+    envVars: (layer) => envContributions.get(prefixFor(layout, layer)) ?? [],
   };
 
   // ── 2. plan ────────────────────────────────────────────────────────────────
@@ -128,6 +135,17 @@ export async function runPipeline(
   };
 
   await stage('render', async () => {
+    // Every recipe's env() before any recipe's files(): the container and CI recipes render
+    // build arguments for the browser-visible keys the page modules declare, and a key declared
+    // by a recipe later in the order would otherwise be invisible to them.
+    for (const recipe of recipes) {
+      const vars = recipe.env?.(ctx) ?? [];
+      envByRecipe.set(recipe.id, vars);
+      if (vars.length === 0) continue;
+      const prefix = prefixFor(layout, recipe.layer);
+      envContributions.set(prefix, [...(envContributions.get(prefix) ?? []), ...vars]);
+    }
+
     let index = 0;
     for (const recipe of recipes) {
       emit({ type: 'progress', current: ++index, total: recipes.length, label: recipe.id });
@@ -148,9 +166,11 @@ export async function runPipeline(
         );
       }
 
-      const vars = recipe.env?.(ctx);
-      if (vars?.length) {
-        builderFor(envByPath, `${prefix}.env.example`, () => new EnvBuilder()).add(recipe.id, vars);
+      const vars = envByRecipe.get(recipe.id) ?? [];
+      if (vars.length > 0) {
+        builderFor(envByPath, `${prefix}.env.example`, () => new EnvBuilder()).add(recipe.id, [
+          ...vars,
+        ]);
       }
 
       const ignore = recipe.gitignore?.(ctx);

@@ -22,6 +22,15 @@ jobs:
     name: Web
     runs-on: ubuntu-latest
     timeout-minutes: 15
+<% if (publicEnv.length > 0) { -%>
+    # Browser-visible configuration is compiled into the bundle, so the build needs a value even
+    # though CI never serves the result. These are the .env.example defaults; real per-environment
+    # values belong to the image build in cd.yml.
+    env:
+<% for (const v of publicEnv) { -%>
+      <%= v.key %>: '<%= v.example %>'
+<% } -%>
+<% } -%>
     defaults:
       run:
         working-directory: <%= spec.api ? 'apps/web' : '.' %>

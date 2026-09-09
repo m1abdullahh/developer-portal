@@ -17,6 +17,7 @@
  * framework-agnostic.
  */
 
+import type { EnvVar, RecipeContext } from './types.js';
 import { type ProjectSpec, type UiFramework } from '@idp/core';
 
 export interface FrameworkContract {
@@ -165,4 +166,29 @@ export function requiresFramework(spec: ProjectSpec): readonly string[] {
 /** Test affordance: the frameworks that have registered a contract. */
 export function registeredFrameworks(): UiFramework[] {
   return [...contracts.keys()].sort();
+}
+
+/**
+ * The browser-visible environment variables of the UI layer: those carrying the framework's
+ * public prefix.
+ *
+ * These are compiled into the bundle when the UI is built, so unlike every other variable they
+ * must exist at build time — in the image build and in CI — not just on the running container.
+ * The container and CI recipes render one build argument per key, defaulting to the value
+ * documented in .env.example. Empty for an API-only project. Nuxt reads NUXT_PUBLIC_* again at
+ * start-up through its runtime config, so for it the build argument is only the default — but the
+ * build still needs one, and one rule for all three frameworks is easier to hold than two.
+ */
+export function publicEnvVars(ctx: RecipeContext): readonly EnvVar[] {
+  if (!ctx.spec.ui) return [];
+  const prefix = frameworkContract(ctx.spec).publicEnvPrefix;
+  // One entry per key. Two modules may declare the same key — settingsRbac and userManagement
+  // both need the API URL — and a duplicate here becomes a duplicate ARG and an invalid YAML
+  // map in the CI job. The .env.example builder makes the same first-wins choice.
+  const seen = new Set<string>();
+  return ctx.envVars('ui').filter((v) => {
+    if (!v.key.startsWith(prefix) || seen.has(v.key)) return false;
+    seen.add(v.key);
+    return true;
+  });
 }

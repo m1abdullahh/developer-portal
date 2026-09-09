@@ -14,6 +14,7 @@ import { pythonVersion, targetUsesKubernetes, type ProjectSpec } from '@idp/core
 import { loadTemplateDir } from '../template-loader.js';
 import { README_ORDER } from '../merge/readme.js';
 import { runtimeContract } from '../runtime-contract.js';
+import { publicEnvVars } from '../framework-contract.js';
 import type { Recipe } from '../types.js';
 
 export const ARGOCD_RECIPE_ID = 'ops.gitops.argocd';
@@ -82,6 +83,8 @@ export const githubActionsRecipe: Recipe = {
   files: (ctx) =>
     loadTemplateDir(templatePath('ops', 'cicd', 'github-actions'), ctx, GITHUB_ACTIONS_RECIPE_ID, {
       runtime: ctx.spec.api ? runtimeContract(ctx.spec) : null,
+      // The web job's build and the web image's build-args — one list, so they cannot disagree.
+      publicEnv: publicEnvVars(ctx),
       // setup-uv pins the same version the Dockerfile copies, so CI and the image resolve
       // dependencies with identical resolver behaviour.
       uvVersion: pythonVersion('uv'),

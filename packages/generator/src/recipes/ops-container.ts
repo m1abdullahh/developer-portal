@@ -15,6 +15,7 @@ import { templatePath } from '@idp/templates';
 import { pythonVersion, type ProjectSpec } from '@idp/core';
 import { loadTemplateDir } from '../template-loader.js';
 import { registerDeployableContract } from '../deployable-contract.js';
+import { publicEnvVars } from '../framework-contract.js';
 import { README_ORDER } from '../merge/readme.js';
 import { NEXTJS_APP_RECIPE_ID } from './ui-nextjs-app.js';
 import { VITE_REACT_RECIPE_ID } from './ui-vite-react.js';
@@ -22,9 +23,36 @@ import { NUXT_RECIPE_ID } from './ui-nuxt.js';
 import { NODE_TS_RECIPE_ID } from './api-node-ts.js';
 import { PYTHON_FASTAPI_RECIPE_ID, PYTHON_PORT } from './api-python-fastapi.js';
 import { GO_GIN_RECIPE_ID, GO_PORT } from './api-go-gin.js';
-import type { Recipe } from '../types.js';
+import type { Recipe, RecipeContext } from '../types.js';
 
 const containersEnabled = (spec: ProjectSpec): boolean => spec.ops.container.strategy !== 'none';
+
+/**
+ * README lines for the build arguments a web image declares, or nothing when it declares none.
+ *
+ * Worth its own paragraph because the failure it prevents is silent in the wrong direction: a
+ * browser-visible key is baked in at build time, so an image built without the right value does
+ * not fail — it ships pointing the browser at the default.
+ */
+function publicEnvReadme(ctx: RecipeContext): string[] {
+  const vars = publicEnvVars(ctx);
+  if (vars.length === 0) return [];
+  return [
+    '',
+    'Browser-visible configuration is compiled into the bundle, so it is a **build argument**,',
+    'not a runtime environment variable. Each defaults to its `.env.example` value; override it',
+    'per environment when building the image:',
+    '',
+    '```bash',
+    ...vars.map(
+      (v) => `docker build --build-arg ${v.key}=https://api.example.com -t web:local apps/web`,
+    ),
+    '```',
+    '',
+    '`cd.yml` passes repository *variables* of the same names, so set',
+    vars.map((v) => `\`${v.key}\``).join(', ') + ' there for the deployed image.',
+  ];
+}
 
 export const CONTAINER_NEXT_RECIPE_ID = 'ops.container.next';
 
@@ -53,10 +81,13 @@ export const containerNextRecipe: Recipe = {
 
   appliesTo: (spec) => containersEnabled(spec) && spec.ui?.framework === 'nextjs-app',
 
+  // The page modules' browser-visible keys become build arguments — see publicEnvVars().
   files: (ctx) =>
-    loadTemplateDir(templatePath('ops', 'container', 'next'), ctx, CONTAINER_NEXT_RECIPE_ID),
+    loadTemplateDir(templatePath('ops', 'container', 'next'), ctx, CONTAINER_NEXT_RECIPE_ID, {
+      publicEnv: publicEnvVars(ctx),
+    }),
 
-  readme: () => ({
+  readme: (ctx) => ({
     order: README_ORDER.deployment,
     heading: 'Container (web)',
     body: [
@@ -70,6 +101,7 @@ export const containerNextRecipe: Recipe = {
       'Depends on `output: "standalone"` in `next.config.ts`. Without it the runner stage has no',
       '`server.js` and the container exits immediately, while `npm run build` still succeeds',
       'locally — so the failure only appears at image build time.',
+      ...publicEnvReadme(ctx),
     ].join('\n'),
   }),
 };
@@ -115,9 +147,12 @@ export const containerSpaNginxRecipe: Recipe = {
       templatePath('ops', 'container', 'spa-nginx'),
       ctx,
       CONTAINER_SPA_NGINX_RECIPE_ID,
+      {
+        publicEnv: publicEnvVars(ctx),
+      },
     ),
 
-  readme: () => ({
+  readme: (ctx) => ({
     order: README_ORDER.deployment,
     heading: 'Container (web)',
     body: [
@@ -136,6 +171,7 @@ export const containerSpaNginxRecipe: Recipe = {
       'Hashed assets are cached for a year and `index.html` is never cached — it is the map to',
       'those filenames, and a cached copy keeps requesting the previous deploy long after it is',
       'gone.',
+      ...publicEnvReadme(ctx),
     ].join('\n'),
   }),
 };
@@ -173,9 +209,11 @@ export const containerNuxtRecipe: Recipe = {
   appliesTo: (spec) => containersEnabled(spec) && spec.ui?.framework === 'nuxt',
 
   files: (ctx) =>
-    loadTemplateDir(templatePath('ops', 'container', 'nuxt'), ctx, CONTAINER_NUXT_RECIPE_ID),
+    loadTemplateDir(templatePath('ops', 'container', 'nuxt'), ctx, CONTAINER_NUXT_RECIPE_ID, {
+      publicEnv: publicEnvVars(ctx),
+    }),
 
-  readme: () => ({
+  readme: (ctx) => ({
     order: README_ORDER.deployment,
     heading: 'Container (web)',
     body: [
@@ -192,6 +230,7 @@ export const containerNuxtRecipe: Recipe = {
       'The build stage deliberately does NOT pass `--ignore-scripts`. Nuxt’s `postinstall` runs',
       '`nuxt prepare`, which writes the generated types the build needs — skipping it fails with',
       'missing `#imports` and nothing that names the cause.',
+      ...publicEnvReadme(ctx),
     ].join('\n'),
   }),
 };

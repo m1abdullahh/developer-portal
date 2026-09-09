@@ -119,6 +119,60 @@ Postgres/Prisma + all 5 middleware + Docker + Helm + ArgoCD + GitHub Actions.
 **End-to-end time measured and recorded.** If this gate slips, everything after it is at risk —
 it is the schedule's early-warning signal.
 
+_Gate preparation, 2026-09-09._ The gate has not run: the token in the portal's env file is dead
+(GitHub answers 401 to it), so nothing could be created in the organisation. Everything up to
+that point was exercised instead, and it found two blockers the smoke harness had been hiding.
+
+- **No generated Node project could install.** `vitest@4.1.10` alone, in an otherwise empty
+  manifest, crashes npm 10.9's peer resolver — the npm that Node 22 ships, so also every generated
+  CI run and every `node:22` image build. Each `@vitest/*` companion at that version peers back on
+  vitest exactly, and only the 4.1 line also peers on `vite`; vite 8.2 shipped after the last
+  green smoke run. `check-versions.mjs` cannot see this — every pin still resolves — and the
+  nightly smoke would have. Generated projects now pin **4.0.18** (see docs/VERSIONS.md).
+- **Web images and generated CI failed on browser-visible configuration.** The settings and users
+  pages read `NEXT_PUBLIC_API_URL` through a schema that throws at import; `next build` prerenders
+  them; neither the Dockerfile nor `ci.yml` supplied a value. The build passed on any machine
+  with a `.env`, which is why nobody saw it. Recipes can now read every env contribution before
+  rendering (`ctx.envVars`), so the three web Dockerfiles declare each public key as a build
+  argument defaulting to its `.env.example` value, the CI web job sets the same defaults, and
+  `cd.yml` passes repository variables through; an empty override falls back to the default.
+  `build-config-contract.test.ts` holds the three in step for Next, Vite and Nuxt.
+
+With both fixed, a freshly generated spine passes the gate's local half end to end on this
+machine: install, Prisma migrate against a real Postgres, lint, typecheck, test and build for both
+apps; boot and probe (`/health`, `/ready` 200 with the database up, `/openapi.json`, `/docs`);
+both images build (api 690 MB, web 280 MB); `helm lint`, `helm template` for dev/staging/prod,
+`kubeconform -strict`, conftest, and the ArgoCD manifests against their CRD schemas. 28 checks,
+0 failures, 3.1 minutes. The wizard-to-repository half is scripted (headless Playwright through
+the real wizard, then clone, verify, and wait for the repository's own CI) and dry-ran cleanly
+up to the GitHub call.
+
+_Gate result, 2026-09-09._ **Passed.** Run later the same day with a working token, through the
+real wizard headlessly (development sign-in, every default accepted — so the exact spine stack,
+no page modules) into `Inter-Developer-Portal/idp-gate-spine`: one atomic commit of 70 files,
+topics set, catalog entry written.
+
+| Measured                         | Time           |
+| -------------------------------- | -------------- |
+| Wizard start → submit (headless) | 3.7 s          |
+| Submit → repository provisioned  | 9.5 s          |
+| Wizard start → repository        | 13.2 s         |
+| Repository's own CI, on GitHub   | 5 min 31 s     |
+| **Wizard start → green CI**      | **5 min 46 s** |
+
+Against the PRD's three-to-five-day baseline and the ten-minute target. The clone installed,
+migrated against a real Postgres, linted, typechecked, tested, built and booted both apps
+(`/ready` 200 with the database up); both images built; chart and ArgoCD manifests passed
+`helm lint`, `helm template`, `kubeconform -strict` and conftest for dev, staging and prod.
+30 checks, 0 failures.
+
+One warning, expected: branch protection is refused on a private repository in a free-plan
+organisation (403 "Upgrade to GitHub Pro"), so the job finished `completed_with_warnings` with
+the repository intact and the reason recorded — the doc 06 §6 behaviour, observed for real.
+Team grants and Actions secrets were not exercised: none were requested and none exist to set.
+A human filling in the wizard adds their own reading time to the 3.7 s; everything after the
+submit button is the number above.
+
 ---
 
 ## P2 — UI Breadth (doc 02)

@@ -23,7 +23,21 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Typechecks first — see the build script. Vite alone would strip types without checking them.
+<% if (publicEnv.length > 0) { -%>
+# Browser-visible configuration is compiled into the bundle by the build, so it has to exist
+# here, at image build time — a value set on the running container arrives too late to matter.
+# Each key defaults to the value documented in .env.example. Override per environment with
+# `--build-arg KEY=value`; cd.yml passes repository variables of the same names. An empty
+# override counts as "not provided" and falls back to the default, so an unset variable cannot
+# fail the build's own validation.
+<% for (const v of publicEnv) { -%>
+ARG <%= v.key %>="<%= v.example %>"
+<% } -%>
+RUN <% for (const v of publicEnv) { %>[ -n "$<%= v.key %>" ] || export <%= v.key %>="<%= v.example %>"; <% } %>\
+    npm run build
+<% } else { -%>
 RUN npm run build
+<% } -%>
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine AS runner
 

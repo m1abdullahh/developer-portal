@@ -60,25 +60,45 @@ is how teams start reaching for `--no-verify`.
 
 ## Toolchain
 
-| Package                | Version   | Notes                                                       |
-| ---------------------- | --------- | ----------------------------------------------------------- |
-| typescript             | **6.0.3** | Capped by typescript-eslint — see above                     |
-| turbo                  | 2.10.7    | v2 schema uses `tasks`, not `pipeline`                      |
-| eslint                 | 10.8.0    | Flat config only; `.eslintrc` is no longer read             |
-| typescript-eslint      | 8.65.0    |                                                             |
-| eslint-config-prettier | 10.1.8    |                                                             |
-| prettier               | 3.9.6     |                                                             |
-| globals                | 17.8.0    |                                                             |
-| vitest                 | 4.1.10    |                                                             |
-| @playwright/test       | 1.62.0    | Matches Next 16's peer range `^1.51.1`                      |
-| dependency-cruiser     | 18.1.0    | Enforces the no-cycles rule from doc 00 §2                  |
-| tsx                    | 4.23.1    |                                                             |
-| @types/node            | 22.20.1   | Tracks the Node **22** runtime, not the latest major (26.x) |
+| Package                | Version   | Notes                                                        |
+| ---------------------- | --------- | ------------------------------------------------------------ |
+| typescript             | **6.0.3** | Capped by typescript-eslint — see above                      |
+| turbo                  | 2.10.7    | v2 schema uses `tasks`, not `pipeline`                       |
+| eslint                 | 10.8.0    | Flat config only; `.eslintrc` is no longer read              |
+| typescript-eslint      | 8.65.0    |                                                              |
+| eslint-config-prettier | 10.1.8    |                                                              |
+| prettier               | 3.9.6     |                                                              |
+| globals                | 17.8.0    |                                                              |
+| vitest                 | 4.1.10    | Monorepo only. Generated projects pin **4.0.18** — see below |
+| @playwright/test       | 1.62.0    | Matches Next 16's peer range `^1.51.1`                       |
+| dependency-cruiser     | 18.1.0    | Enforces the no-cycles rule from doc 00 §2                   |
+| tsx                    | 4.23.1    |                                                              |
+| @types/node            | 22.20.1   | Tracks the Node **22** runtime, not the latest major (26.x)  |
 
 Generated projects also receive `@eslint/js` **10.0.1** and `typescript-eslint` **8.65.0** — the
 same versions this monorepo runs. They are not optional extras: ESLint 9 removed `.eslintrc`, so
 a generated project needs a flat config, and a flat config cannot say anything about TypeScript
 without them. Omitting them made `eslint .` exit 2 on every provisioned repository.
+
+### Generated projects pin vitest **4.0.18**, not 4.1.10
+
+Found on 2026-09-09 while preparing the Phase 1 gate: `npm install` failed in every freshly
+generated Node project — locally, and inside the stock `node:22-bookworm-slim` image during
+`docker build` — with npm's "Cannot read properties of null (reading 'edgesOut')". Bisecting the
+manifest one dependency at a time left a single culprit: `vitest@4.1.10` on its own, in an otherwise
+empty manifest. Each of its optional companions (`@vitest/ui`, `coverage-v8`, `coverage-istanbul`,
+`browser-*`) fails the same way alone, because each peers back on `vitest@4.1.10` exactly. Only the
+4.1 line also peers on `vite`, and vite 8.2 shipped after the last green smoke run (2026-08-04); that
+is the registry change that turned a working graph into one npm 10.9 cannot resolve. 4.1.9 and
+4.1.11 fail identically; `--legacy-peer-deps` passes, which confirms the peer graph is the trigger.
+
+The 4.0 line has no vite peer, resolves on both spine manifests, and is still maintained. This
+monorepo keeps 4.1.10 because it installs from a lockfile, which skips peer resolution. Generated
+projects have no lockfile until their first install, which is exactly when this bites — and it is
+the npm that GitHub's Node 22 runners ship, so their CI would have failed on the first push.
+
+`scripts/check-versions.mjs` did not catch this: every pin still _resolves_. Only the smoke harness,
+which runs a real `npm install`, can — which is the argument for it in doc 08 §3 made concrete.
 
 ## Portal
 

@@ -18,6 +18,11 @@ jobs:
     name: Web
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Browser-visible configuration is compiled into the bundle, so the build needs a value even
+    # though CI never serves the result. These are the .env.example defaults; real per-environment
+    # values belong to the image build in cd.yml.
+    env:
+      NEXT_PUBLIC_API_URL: 'http://localhost:3001'
     defaults:
       run:
         working-directory: apps/web

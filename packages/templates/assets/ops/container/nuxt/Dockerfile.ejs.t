@@ -21,7 +21,20 @@ COPY package.json package-lock.json* ./
 # build with missing `#imports` rather than anything that names the cause.
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 COPY . .
+<% if (publicEnv.length > 0) { -%>
+# Browser-visible configuration. Nuxt reads NUXT_PUBLIC_* again at start-up through its runtime
+# config, so unlike the Next and Vite images this value is only the build-time default — but the
+# build still needs one, and declaring it the same way keeps the three web images alike. Override
+# per environment with `--build-arg KEY=value`; cd.yml passes repository variables of the same
+# names. An empty override counts as "not provided" and falls back to the default.
+<% for (const v of publicEnv) { -%>
+ARG <%= v.key %>="<%= v.example %>"
+<% } -%>
+RUN <% for (const v of publicEnv) { %>[ -n "$<%= v.key %>" ] || export <%= v.key %>="<%= v.example %>"; <% } %>\
+    npm run build
+<% } else { -%>
 RUN npm run build
+<% } -%>
 
 # ── runner ───────────────────────────────────────────────────────────────────
 # Distroless: no shell, no package manager, no coreutils. A compromised process has almost

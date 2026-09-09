@@ -76,6 +76,20 @@ export interface RecipeContext {
   ids: { next(prefix: string): string };
   /** Where each layer lives in the repo — see layout.ts. */
   paths: RepoLayout;
+  /**
+   * Environment variables contributed by every selected recipe, grouped the way `.env.example`
+   * is: by the layer prefix the variable lands under.
+   *
+   * Collected before any file is rendered, so an integration-phase recipe can see what the
+   * feature recipes beneath it require. The container and CI recipes need this: a browser-visible
+   * key (`NEXT_PUBLIC_*`, `VITE_*`) is compiled into the bundle by the build, so the image build
+   * and the CI build both need a value for it — and only the module that declared the key knows
+   * it exists. Without this, `next build` passed on a developer's machine, where `.env` supplied
+   * the value, and failed inside `docker build` and in the generated CI, where nothing did.
+   *
+   * `env()` implementations must not read this: they are what populates it.
+   */
+  envVars: (layer: RecipeLayer | undefined) => readonly EnvVar[];
 }
 
 export interface Recipe {

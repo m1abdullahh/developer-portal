@@ -101,6 +101,15 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: <%= spec.api ? 'apps/web' : '.' %>
+<% if (publicEnv.length > 0) { -%>
+          # Browser-visible configuration, compiled into the bundle at image build time. Set a
+          # repository variable of the same name to override the .env.example default; an unset
+          # variable passes through empty and the Dockerfile falls back to its default.
+          build-args: |
+<% for (const v of publicEnv) { -%>
+            <%= v.key %>=${{ vars.<%= v.key %> }}
+<% } -%>
+<% } -%>
           push: true
           tags: ${{ vars.IMAGE_REPO_WEB }}:${{ steps.meta.outputs.sha }}
           cache-from: type=gha

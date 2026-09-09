@@ -16,7 +16,16 @@ export const GENERATED_VERSIONS = {
   // ── Shared ────────────────────────────────────────────────────────────────
   typescript: '6.0.3',
   zod: '4.4.3',
-  vitest: '4.1.10',
+  // 4.0.x, not 4.1.x, and not because 4.1 is worse. Every 4.1.x release peers on `vite` and on its
+  // own companion packages (@vitest/ui, coverage-*, browser-*) at an exact version, and each of
+  // those peers back on vitest at the same exact version. Since vite 8.2 shipped, that graph makes
+  // npm 10.9 (the npm Node 22 ships, so also every generated CI run) crash in its peer resolver
+  // with "Cannot read properties of null (reading 'edgesOut')" — on a bare `npm install vitest@4.1.10`
+  // with nothing else in the manifest. A generated project therefore could not install at all.
+  // The 4.0 line has no vite peer and resolves; it is still maintained (4.0.18 is from 2026-09-05).
+  // Verified on 2026-09-09 against both the web and api spine manifests. Revisit when a vitest
+  // 4.1/5.x resolves on npm 10.9 without --legacy-peer-deps.
+  vitest: '4.0.18',
   eslint: '10.8.0',
   // ESLint 9 removed .eslintrc, so a generated project needs a flat config — and a flat config
   // needs these two to say anything useful about TypeScript. Same versions this monorepo runs.
