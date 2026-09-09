@@ -205,6 +205,7 @@ export const projectSpecSchema = baseProjectSpecSchema.superRefine((spec, ctx) =
       hasApi: spec.api !== null,
       hasDatabase: spec.api !== null && spec.api.database !== 'none',
       authMode: spec.api?.middleware.auth ?? ('none' as const),
+      ...(spec.api ? { paradigm: spec.api.paradigm } : {}),
     };
     for (const [name, enabled] of Object.entries(spec.ui.modules)) {
       if (!enabled) continue;

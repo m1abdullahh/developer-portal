@@ -255,7 +255,32 @@ and all four page modules, each smoke-verified.
   is gofmt-clean, passes its tests, boots, and serves `/health`, `/ready` (503 with the database
   down, correctly disagreeing with liveness), `/openapi.json` and `/docs`.
 
-- [ ] Paradigms: `graphql` (Apollo 4 / Strawberry / gqlgen, all with DataLoader), `trpc` (Node-only, gated)
+- [x] Paradigm: `graphql` on all three runtimes — complete and enabled in the wizard. Schema-first
+      on Node (Apollo Server **5**, not 4: the current major, on Fastify through Apollo's own
+      integration, resolver types generated from the SDL by graphql-codegen on `postinstall`) and
+      on Go (graph-gophers/graphql-go, embedded SDL bound to resolver methods at start-up);
+      code-first on Python (Strawberry, where the types are the schema as Pydantic is for REST).
+      DataLoader wired into a per-request context on every runtime, with the Prisma example model
+      batched end to end where a model exists. Each smoke-verified, with the harness now running
+      case-specific probes — `POST /graphql { health }` and `GET /schema.graphql` — because a
+      GraphQL service whose only working route is `/health` is indistinguishable from REST by the
+      default probes.
+
+  Two deviations from doc 03 §2.2, both recorded where the pin lives. **Apollo 5** because 4 left
+  support. **graph-gophers, not gqlgen**, for the reason that gated sqlc: gqlgen is a code
+  generator, and the portal renders projects in memory with no Go toolchain to run one.
+
+  Three things fell out of it. The data-backed page modules (`userManagement`, `settingsRbac`,
+  `stripeBilling`) ship REST endpoints and a REST client, so `moduleGate` now takes the paradigm
+  and disables them under GraphQL with a stated reason — otherwise a spec passed every check and
+  rendered a page calling routes nothing generated. The JWT middleware on Python and Go gained an
+  optional variant (`optional_user`, `OptionalUser`) so one endpoint can serve anonymous and
+  authenticated operations and enforce per resolver, which the Node context does with
+  `jwtVerify`. And `ruff check .` in a generated Python project walked the virtualenv: the
+  runtime's pyproject set `exclude`, which replaces ruff's defaults including `.venv`, and only a
+  git checkout's `.gitignore` had been hiding it — now `extend-exclude`.
+
+- [ ] Paradigm: `trpc` (Node-only, gated in the wizard with the reason)
 - [x] ORMs: two per runtime for Postgres — Prisma + **Drizzle** (Node), SQLModel + **SQLAlchemy**
       (Python), GORM (Go). Each smoke-verified end to end. The remaining four are gated honestly
       rather than left as holes: `sqlc` is disabled in the wizard with a stated reason (its

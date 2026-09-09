@@ -99,13 +99,13 @@ describe('the P1 spine is never marked as coming later', () => {
 
 describe('comingSoonReason', () => {
   /*
-   * `graphql`, and this target has now moved three times — Nuxt, then python-fastapi, then
-   * go-gin, each graduating out from under the assertion. The churn is the point: a coming-soon
-   * note nobody re-examines is how a working feature stays unselectable. The paradigms are the
-   * remaining unbuilt surface.
+   * `trpc`, and this target has now moved four times — Nuxt, then python-fastapi, then go-gin,
+   * then graphql, each graduating out from under the assertion. The churn is the point: a
+   * coming-soon note nobody re-examines is how a working feature stays unselectable. tRPC is the
+   * last unbuilt paradigm.
    */
   it('names the phase so the note is actionable', () => {
-    const reason = comingSoonReason(API_PARADIGMS.graphql);
+    const reason = comingSoonReason(API_PARADIGMS.trpc);
     expect(reason).toMatch(/P\d/);
   });
 

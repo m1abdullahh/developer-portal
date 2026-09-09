@@ -118,6 +118,21 @@ export const GENERATED_VERSIONS = {
   '@fastify/rate-limit': '11.1.0',
   '@fastify/jwt': '10.2.1',
 
+  // ── API: GraphQL paradigm (P3) ───────────────────────────────────────────
+  // Apollo Server **5**, not the 4 the plan names: 5 is the current major and 4 left support in
+  // 2026. It peers on graphql ^16.11, so graphql stays on the 16 line even though 17 has shipped —
+  // the resolver crashes with ERESOLVE otherwise. The Fastify integration is Apollo's own.
+  // Verified on 2026-09-10; the full set resolves on npm 10.9 alongside the Node runtime pins.
+  '@apollo/server': '5.5.1',
+  '@as-integrations/fastify': '3.1.0',
+  graphql: '16.14.2',
+  '@graphql-tools/schema': '10.1.1',
+  dataloader: '2.2.3',
+  // Schema → resolver types. Dev-only: the running service imports only the emitted .ts file.
+  '@graphql-codegen/cli': '7.4.0',
+  '@graphql-codegen/typescript': '6.1.0',
+  '@graphql-codegen/typescript-resolvers': '6.1.0',
+
   // ── API: data ─────────────────────────────────────────────────────────────
   prisma: '7.9.1',
   '@prisma/client': '7.9.1',
@@ -201,6 +216,12 @@ export const PYTHON_VERSIONS = {
   // The async Postgres driver SQLAlchemy 2 drives. `psycopg` would also work but the async story
   // is newer; asyncpg is what `postgresql+asyncpg://` in the generated URL expects.
   asyncpg: '0.31.0',
+
+  // ── API: GraphQL paradigm (P3) ───────────────────────────────────────────
+  // Code-first, the way Pydantic is for REST: the Python types are the schema, and
+  // `strawberry export-schema` prints the SDL the other runtimes keep as a file. Declared with the
+  // [fastapi] extra where it is required. Verified against PyPI on 2026-09-10.
+  'strawberry-graphql': '0.327.7',
 } as const satisfies Record<string, string>;
 
 export type PythonPackage = keyof typeof PYTHON_VERSIONS;
@@ -236,6 +257,12 @@ export const GO_VERSIONS = {
   // migration tool" to "a trap" the first time a schema change is destructive. goose runs plain
   // SQL files with an Up and a Down, which is the same posture Alembic and Prisma take.
   'github.com/pressly/goose/v3': 'v3.27.3',
+  // ── API: GraphQL paradigm (P3) ───────────────────────────────────────────
+  // graph-gophers rather than gqlgen, for the reason that gated sqlc: gqlgen is a code generator,
+  // and the portal renders projects in memory with no Go toolchain to run one. graph-gophers is
+  // schema-first without generation — the SDL is parsed at start-up and bound to resolver methods
+  // by name. Verified against the module proxy on 2026-09-10.
+  'github.com/graph-gophers/graphql-go': 'v1.10.2',
 } as const satisfies Record<string, `v${string}`>;
 
 export type GoModule = keyof typeof GO_VERSIONS;

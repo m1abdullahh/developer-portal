@@ -148,6 +148,27 @@ export function apiOnlyPythonSpec(override: DeepPartial<ProjectSpec> = {}): Proj
   );
 }
 
+/**
+ * API-only Node service on the GraphQL paradigm (P3).
+ *
+ * Prisma stays on deliberately: the GraphQL recipe's DataLoader demo batches the example model,
+ * and a fixture with no database would exercise the transport while leaving the one part of the
+ * recipe that exists to prevent N+1 unrendered.
+ */
+export function apiOnlyGraphqlSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
+  return spineSpec(
+    merge(
+      {
+        meta: { slug: 'acme-graph-api', deploymentTarget: 'onprem-k8s' },
+        ui: null,
+        api: { runtime: 'node-ts', paradigm: 'graphql', database: 'postgres', orm: 'prisma' },
+        ops: { cicd: { registry: 'ghcr' } },
+      } as DeepPartial<ProjectSpec>,
+      override,
+    ),
+  );
+}
+
 /** API-only Go service. Awaiting `api.runtime.go-gin`; see apiOnlyPythonSpec for why. */
 export function apiOnlyGoSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
   return spineSpec(

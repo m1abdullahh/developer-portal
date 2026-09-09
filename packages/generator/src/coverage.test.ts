@@ -38,7 +38,7 @@ const IMPLEMENTED = {
   stylings: ['tailwind-shadcn', 'css-modules', 'mui'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
   runtimes: ['node-ts', 'python-fastapi', 'go-gin'],
-  paradigms: ['rest'],
+  paradigms: ['rest', 'graphql'],
   databases: ['postgres', 'none'],
   /**
    * Two ORMs per runtime for Postgres. The mongo ORMs (mongoose, beanie, mongo-go) are absent
@@ -71,6 +71,13 @@ const IMPLEMENTED = {
  */
 const PARTIAL = {
   frameworks: [] as readonly string[],
+  /**
+   * `graphql` lived here for the hours between its Node recipe landing and its Python and Go
+   * recipes following. The wizard cannot gate a paradigm per runtime with a stated reason, so a
+   * paradigm graduates only once every runtime has it — otherwise a FastAPI project could select
+   * one with nothing behind it.
+   */
+  paradigms: [] as readonly string[],
 } as const;
 
 /**
@@ -185,24 +192,31 @@ describe('unimplemented options have no recipe', () => {
    * `IMPLEMENTED` — and without un-disabling it in the wizard — the option silently does nothing
    * for users while looking done in the codebase.
    */
+  const none: readonly string[] = [];
   it.each([
-    ['ui.state', UI_STATES, IMPLEMENTED.states as readonly string[]],
-    ['ui.framework', UI_FRAMEWORKS, IMPLEMENTED.frameworks as readonly string[]],
-    ['ui.styling', UI_STYLINGS, IMPLEMENTED.stylings as readonly string[]],
-    ['api.runtime', API_RUNTIMES, IMPLEMENTED.runtimes as readonly string[]],
-    ['api.paradigm', API_PARADIGMS, IMPLEMENTED.paradigms as readonly string[]],
-  ])('%s: no recipe exists for a value not in the ledger', (prefix, values, implemented) => {
-    const partial = PARTIAL.frameworks as readonly string[];
+    ['ui.state', UI_STATES, IMPLEMENTED.states as readonly string[], none],
+    [
+      'ui.framework',
+      UI_FRAMEWORKS,
+      IMPLEMENTED.frameworks as readonly string[],
+      PARTIAL.frameworks,
+    ],
+    ['ui.styling', UI_STYLINGS, IMPLEMENTED.stylings as readonly string[], none],
+    ['api.runtime', API_RUNTIMES, IMPLEMENTED.runtimes as readonly string[], none],
+    ['api.paradigm', API_PARADIGMS, IMPLEMENTED.paradigms as readonly string[], PARTIAL.paradigms],
+  ])(
+    '%s: no recipe exists for a value not in the ledger',
+    (prefix, values, implemented, partial) => {
+      const unexpected = values
+        .filter((value) => !implemented.includes(value))
+        // A partially-implemented option is a stated decision, not an oversight. Listing it in
+        // PARTIAL is the statement; everything else here still fails.
+        .filter((value) => !partial.includes(value))
+        .filter((value) => allRecipeIds.includes(`${prefix}.${value}`));
 
-    const unexpected = values
-      .filter((value) => !implemented.includes(value))
-      // A partially-implemented option is a stated decision, not an oversight. Listing it in
-      // PARTIAL is the statement; everything else here still fails.
-      .filter((value) => !partial.includes(value))
-      .filter((value) => allRecipeIds.includes(`${prefix}.${value}`));
-
-    expect(unexpected).toEqual([]);
-  });
+      expect(unexpected).toEqual([]);
+    },
+  );
 
   /**
    * A partial option must actually be partial — a recipe that exists AND is fully offered belongs
@@ -211,6 +225,11 @@ describe('unimplemented options have no recipe', () => {
   it.each(PARTIAL.frameworks)('%s has a recipe but is not claimed as implemented', (framework) => {
     expect(allRecipeIds).toContain(`ui.framework.${framework}`);
     expect(IMPLEMENTED.frameworks as readonly string[]).not.toContain(framework);
+  });
+
+  it.each(PARTIAL.paradigms)('%s has a recipe but is not claimed as implemented', (paradigm) => {
+    expect(allRecipeIds).toContain(`api.paradigm.${paradigm}`);
+    expect(IMPLEMENTED.paradigms as readonly string[]).not.toContain(paradigm);
   });
 });
 

@@ -24,6 +24,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   apiOnlyGoSpec,
+  apiOnlyGraphqlSpec,
   apiOnlyPythonSpec,
   spineSpec,
   uiOnlyVercelSpec,
@@ -83,6 +84,9 @@ const MATRIX: Array<{ name: string; spec: ProjectSpec }> = [
   { name: 'ui-only', spec: uiOnlyVercelSpec() },
   { name: 'api-only-python', spec: apiOnlyPythonSpec() },
   { name: 'api-only-go', spec: apiOnlyGoSpec() },
+  { name: 'api-only-graphql', spec: apiOnlyGraphqlSpec() },
+  { name: 'api-only-graphql-python', spec: apiOnlyPythonSpec({ api: { paradigm: 'graphql' } }) },
+  { name: 'api-only-graphql-go', spec: apiOnlyGoSpec({ api: { paradigm: 'graphql' } }) },
 ];
 
 describe.each(MATRIX)('golden — $name', ({ name, spec }) => {

@@ -214,6 +214,7 @@ export function repairModules(
     hasApi: api !== null,
     hasDatabase: api !== null && api.database !== 'none',
     authMode: api?.middleware.auth ?? ('none' as const),
+    ...(api ? { paradigm: api.paradigm } : {}),
   };
 
   const modules = { ...ui.modules };

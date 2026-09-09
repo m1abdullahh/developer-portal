@@ -35,14 +35,12 @@ func unauthorized(c *gin.Context) {
 	})
 }
 
-// authenticate verifies the bearer token and returns the user, aborting with 401 on any failure.
-// It never calls c.Next() — that is the caller's decision, which is what lets RequirePermission
-// run its own check between authentication and the handler.
-func authenticate(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) {
+// parseBearer verifies the bearer token and returns the caller. It writes nothing: a false result
+// means no usable token, and what that means for the request is the caller's decision.
+func parseBearer(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) {
 	header := c.GetHeader("Authorization")
 	token, found := strings.CutPrefix(header, "Bearer ")
 	if !found || token == "" {
-		unauthorized(c)
 		return AuthenticatedUser{}, false
 	}
 
@@ -54,7 +52,6 @@ func authenticate(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) 
 		return []byte(cfg.JWTSecret), nil
 	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil {
-		unauthorized(c)
 		return AuthenticatedUser{}, false
 	}
 
@@ -62,18 +59,35 @@ func authenticate(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) 
 	if !permissions.IsRole(role) {
 		// A token signed by us carrying a role we do not recognise is a policy change that has
 		// not finished rolling out. Refusing is the safe direction.
-		unauthorized(c)
 		return AuthenticatedUser{}, false
 	}
 
 	subject, _ := claims["sub"].(string)
 	if subject == "" {
-		unauthorized(c)
 		return AuthenticatedUser{}, false
 	}
 
 	email, _ := claims["email"].(string)
 	return AuthenticatedUser{ID: subject, Email: email, Role: permissions.Role(role)}, true
+}
+
+// authenticate verifies the bearer token and returns the user, aborting with 401 on any failure.
+// It never calls c.Next() — that is the caller's decision, which is what lets RequirePermission
+// run its own check between authentication and the handler.
+func authenticate(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) {
+	user, ok := parseBearer(c, cfg)
+	if !ok {
+		unauthorized(c)
+	}
+	return user, ok
+}
+
+// OptionalUser returns the caller when a valid bearer token was sent, and never writes a
+// response. For an endpoint that serves anonymous and authenticated callers alike and decides per
+// operation what each may do — the GraphQL handler builds its context with it. Routes that always
+// need a caller use RequireAuth.
+func OptionalUser(c *gin.Context, cfg *config.Config) (AuthenticatedUser, bool) {
+	return parseBearer(c, cfg)
 }
 
 // RequireAuth is a per-route guard:

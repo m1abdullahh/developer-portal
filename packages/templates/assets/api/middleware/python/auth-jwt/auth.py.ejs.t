@@ -39,17 +39,11 @@ def _unauthorized() -> HTTPException:
     )
 
 
-async def current_user(
-    # Annotated rather than a `= Depends(...)` default — the modern FastAPI form, and the reason
-    # ruff's B008 (no function calls in argument defaults) passes without a suppression.
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-) -> AuthenticatedUser:
-    if credentials is None or not credentials.credentials:
-        raise _unauthorized()
-
+def _decode(token: str) -> AuthenticatedUser:
+    """Verifies a bearer token and returns its caller, or raises the one generic 401."""
     try:
         claims = jwt.decode(
-            credentials.credentials,
+            token,
             settings.JWT_SECRET,
             # A list, and never including "none". PyJWT requires this argument precisely because
             # accepting the algorithm named in the token's own header is the classic JWT forgery:
@@ -71,6 +65,33 @@ async def current_user(
         raise _unauthorized()
 
     return AuthenticatedUser(id=str(subject), email=claims.get("email"), role=role)  # type: ignore[arg-type]
+
+
+async def current_user(
+    # Annotated rather than a `= Depends(...)` default — the modern FastAPI form, and the reason
+    # ruff's B008 (no function calls in argument defaults) passes without a suppression.
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> AuthenticatedUser:
+    if credentials is None or not credentials.credentials:
+        raise _unauthorized()
+    return _decode(credentials.credentials)
+
+
+async def optional_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> AuthenticatedUser | None:
+    """The caller when a valid token was sent, ``None`` otherwise — never a 401.
+
+    For an endpoint that serves anonymous and authenticated callers alike and decides per
+    operation what each may do: the GraphQL router builds its context with this, and resolvers
+    that need a caller check for one. Routes that always need a caller use ``current_user``.
+    """
+    if credentials is None or not credentials.credentials:
+        return None
+    try:
+        return _decode(credentials.credentials)
+    except HTTPException:
+        return None
 
 
 def require_permission(

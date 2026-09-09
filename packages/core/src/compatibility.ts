@@ -244,6 +244,23 @@ export interface ModuleGateInput {
   hasApi: boolean;
   hasDatabase: boolean;
   authMode: AuthMode;
+  /**
+   * The API paradigm, when there is an API. The three data-backed page modules ship REST
+   * endpoints and a REST client; under GraphQL or tRPC they would render a page that calls
+   * routes nothing generated. Optional so callers with no API need not invent a value.
+   */
+  paradigm?: ApiParadigm;
+}
+
+/** Stated once, because three modules need the same sentence. */
+const REST_ONLY_REASON =
+  'Ships REST endpoints and a REST client. GraphQL and tRPC resolvers for this module arrive ' +
+  'later — choose REST in Step 3 to enable it.';
+
+function restOnly(input: ModuleGateInput): ModuleGate | null {
+  return input.paradigm && input.paradigm !== 'rest'
+    ? { enabled: false, reason: REST_ONLY_REASON }
+    : null;
 }
 
 export interface ModuleGate {
@@ -269,7 +286,7 @@ export function moduleGate(module: UiModule, input: ModuleGateInput): ModuleGate
       if (!hasDatabase) {
         return { enabled: false, reason: 'Requires a database — choose one in Step 3.' };
       }
-      return { enabled: true };
+      return restOnly(input) ?? { enabled: true };
 
     case 'stripeBilling':
       if (!hasApi) {
@@ -281,7 +298,7 @@ export function moduleGate(module: UiModule, input: ModuleGateInput): ModuleGate
       if (!hasDatabase) {
         return { enabled: false, reason: 'Requires a database to persist subscriptions.' };
       }
-      return { enabled: true };
+      return restOnly(input) ?? { enabled: true };
 
     case 'settingsRbac':
       if (authMode === 'none') {
@@ -293,6 +310,6 @@ export function moduleGate(module: UiModule, input: ModuleGateInput): ModuleGate
       if (!hasDatabase) {
         return { enabled: false, reason: 'Requires a database to store roles and permissions.' };
       }
-      return { enabled: true };
+      return restOnly(input) ?? { enabled: true };
   }
 }

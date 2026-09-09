@@ -30,6 +30,12 @@ COPY . .
 # contains imports that resolve to nothing and the container crashes on first query.
 RUN npx prisma generate
 <% } -%>
+<% if (spec.api.paradigm === 'graphql') { -%>
+# Resolver types are generated from schema.graphql (see codegen.ts). `postinstall` does this on a
+# normal install, but the stages above install with --ignore-scripts, so it has to be explicit —
+# without it `tsc` fails on an import of a file that does not exist.
+RUN npm run codegen
+<% } -%>
 RUN npm run build
 
 # ── runner ───────────────────────────────────────────────────────────────────
@@ -46,6 +52,10 @@ COPY --from=builder --chown=nonroot:nonroot /app/package.json ./package.json
 <% if (spec.api.orm === 'prisma') { -%>
 COPY --from=builder --chown=nonroot:nonroot /app/src/generated ./src/generated
 COPY --from=builder --chown=nonroot:nonroot /app/prisma ./prisma
+<% } -%>
+<% if (spec.api.paradigm === 'graphql') { -%>
+# The server reads the schema from disk at start-up and serves it verbatim at /schema.graphql.
+COPY --from=builder --chown=nonroot:nonroot /app/schema.graphql ./schema.graphql
 <% } -%>
 
 # 65532 is distroless's `nonroot`. Declared numerically so Kubernetes can enforce

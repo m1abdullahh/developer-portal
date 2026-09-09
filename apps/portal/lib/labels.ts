@@ -138,13 +138,14 @@ export const API_PARADIGMS: Record<ApiParadigm, OptionMeta> = {
   rest: { label: 'REST + OpenAPI', description: 'Zod schemas generate the OpenAPI document.' },
   graphql: {
     label: 'GraphQL',
-    description: 'Schema-first with a typed resolver map.',
-    comingIn: 'P2',
+    description:
+      'Apollo Server, Strawberry or graph-gophers by runtime; one endpoint, the schema at ' +
+      '/schema.graphql, DataLoader wired in. Data-backed page modules need REST.',
   },
   trpc: {
     label: 'tRPC',
     description: 'End-to-end inference with no schema step. Node only.',
-    comingIn: 'P2',
+    comingIn: 'P3',
   },
 };
 

@@ -81,6 +81,67 @@ const CASES = {
    * The second ORM per runtime (P3.4). Each rides its runtime's fixture with only the ORM
    * swapped, so a failure names the data layer rather than the runtime.
    */
+  'api-graphql': {
+    description:
+      'Fastify + Apollo Server 5 + Prisma — schema-first GraphQL with DataLoader; codegen, boot, query',
+    fixture: 'apiOnlyGraphqlSpec',
+    override: { meta: { slug: 'smoke-api-graphql' } },
+    // /health proves the process; these prove the paradigm. A GraphQL service whose only working
+    // route is /health is indistinguishable from a REST one by the default probes.
+    probes: [
+      {
+        name: 'POST /graphql { health }',
+        method: 'POST',
+        path: '/graphql',
+        body: { query: '{ health { status service } }' },
+        expectJson: (json) => json?.data?.health?.status === 'ok',
+      },
+      {
+        name: 'GET /schema.graphql',
+        path: '/schema.graphql',
+        expectText: (text) => text.includes('type Query'),
+      },
+    ],
+  },
+  'api-graphql-python': {
+    description: 'FastAPI + Strawberry — code-first GraphQL; uv sync, ruff, pytest, boot and query',
+    fixture: 'apiOnlyPythonSpec',
+    override: { api: { paradigm: 'graphql' }, meta: { slug: 'smoke-api-graphql-python' } },
+    probes: [
+      {
+        name: 'POST /graphql { health }',
+        method: 'POST',
+        path: '/graphql',
+        body: { query: '{ health { status service } }' },
+        expectJson: (json) => json?.data?.health?.status === 'ok',
+      },
+      {
+        name: 'GET /schema.graphql',
+        path: '/schema.graphql',
+        expectText: (text) => text.includes('type Query'),
+      },
+    ],
+  },
+  'api-graphql-go': {
+    description:
+      'Gin + graph-gophers — schema-first GraphQL without codegen; vet, test, build, boot, query',
+    fixture: 'apiOnlyGoSpec',
+    override: { api: { paradigm: 'graphql' }, meta: { slug: 'smoke-api-graphql-go' } },
+    probes: [
+      {
+        name: 'POST /graphql { health }',
+        method: 'POST',
+        path: '/graphql',
+        body: { query: '{ health { status service } }' },
+        expectJson: (json) => json?.data?.health?.status === 'ok',
+      },
+      {
+        name: 'GET /schema.graphql',
+        path: '/schema.graphql',
+        expectText: (text) => text.includes('type Query'),
+      },
+    ],
+  },
   'api-drizzle': {
     description: 'Fastify with Drizzle — the TypeScript-schema data layer builds and boots',
     fixture: 'spineSpec',
@@ -591,7 +652,7 @@ function placeholderFor(key) {
   return 'smoke';
 }
 
-async function bootApi(dir, layer, workspace) {
+async function bootApi(dir, layer, workspace, probes = []) {
   const port = await freePort();
   const example = await readFile(path.join(workspace, layer.dir, '.env.example'), 'utf8').catch(
     () => '',
@@ -631,7 +692,40 @@ async function bootApi(dir, layer, workspace) {
       );
     }
 
-    return { port, readyStatus: ready.status };
+    // Case-specific probes run against the same booted process, so a paradigm that answers on a
+    // different path than REST is verified rather than assumed.
+    for (const probe of probes) {
+      const response = await fetch(`http://127.0.0.1:${port}${probe.path}`, {
+        method: probe.method ?? 'GET',
+        ...(probe.body
+          ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(probe.body) }
+          : {}),
+      }).catch((cause) => {
+        throw new Error(`${probe.name}: ${cause.message}\n${output}`);
+      });
+      if (response.status !== (probe.status ?? 200)) {
+        throw new Error(
+          `${probe.name}: expected ${probe.status ?? 200}, got ${response.status}\n${output}`,
+        );
+      }
+      const text = await response.text();
+      if (probe.expectText && !probe.expectText(text)) {
+        throw new Error(`${probe.name}: unexpected body\n${text.slice(0, 500)}`);
+      }
+      if (probe.expectJson) {
+        let json;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          throw new Error(`${probe.name}: body is not JSON\n${text.slice(0, 500)}`);
+        }
+        if (!probe.expectJson(json)) {
+          throw new Error(`${probe.name}: unexpected response\n${text.slice(0, 500)}`);
+        }
+      }
+    }
+
+    return { port, readyStatus: ready.status, probes: probes.length };
   } finally {
     kill(child);
   }
@@ -679,7 +773,7 @@ async function bootWeb(dir, layerEnv = {}) {
  * The same commands the generated CI runs, deliberately — the harness must exercise what CI
  * checks or it only proves the parts CI does not (see the lint/test note in the node path).
  */
-async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv) {
+async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv, probes = []) {
   const steps =
     layer.toolchain === 'python'
       ? [
@@ -713,17 +807,23 @@ async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv) {
     if (currentCase.failed) return;
   }
 
-  await step(`${label}: boot`, async () => bootApi(dir, layer, workspace));
+  await step(`${label}: boot`, async () => bootApi(dir, layer, workspace, probes));
 }
 
 async function smokeCase(name, workspaceRoot) {
   startCase(name);
-  const { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec } =
+  const { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec, apiOnlyGraphqlSpec } =
     await import('@idp/core');
   const { createRegistry, runPipeline, emitTree } = await import('@idp/generator');
 
-  const fixtures = { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec };
-  const { fixture, override } = CASES[name];
+  const fixtures = {
+    spineSpec,
+    uiOnlyVercelSpec,
+    apiOnlyPythonSpec,
+    apiOnlyGoSpec,
+    apiOnlyGraphqlSpec,
+  };
+  const { fixture, override, probes } = CASES[name];
   const spec = fixtures[fixture](override);
 
   const workspace = path.join(workspaceRoot, name);
@@ -765,7 +865,7 @@ async function smokeCase(name, workspaceRoot) {
     }
 
     if (layer.toolchain !== 'node') {
-      await smokeNonNodeLayer(layer, dir, label, workspace, layerEnv);
+      await smokeNonNodeLayer(layer, dir, label, workspace, layerEnv, probes);
       if (currentCase.failed) return;
       continue;
     }
@@ -826,7 +926,7 @@ async function smokeCase(name, workspaceRoot) {
     });
 
     await step(`${label}: boot`, async () =>
-      layer.kind === 'web' ? bootWeb(dir, layerEnv) : bootApi(dir, layer, workspace),
+      layer.kind === 'web' ? bootWeb(dir, layerEnv) : bootApi(dir, layer, workspace, probes),
     );
 
     if (currentCase.failed) return;

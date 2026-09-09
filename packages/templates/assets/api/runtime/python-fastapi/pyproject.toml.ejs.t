@@ -36,7 +36,12 @@ target-version = "py311"
 # Python only. ruff also formats Python code blocks inside markdown, and it wants PEP 8's two
 # blank lines before each top-level def — but the README is assembled by a merger that collapses
 # consecutive blank lines, so the two tools would disagree forever. The format gate is for code.
-exclude = ["*.md"]
+#
+# `extend-exclude`, not `exclude`: the latter REPLACES ruff's default exclusions, .venv among them.
+# Inside a git checkout .gitignore hid the damage, but anywhere else — a fresh export, a smoke
+# workspace — `ruff check .` walked the virtualenv and reported thousands of findings in other
+# people's packages.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 # E,F = pyflakes/pycodestyle; I = import sorting (so there is no separate isort); B = bugbear;

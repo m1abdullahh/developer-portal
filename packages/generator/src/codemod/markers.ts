@@ -34,6 +34,8 @@ export const MARKER_SYNTAX = {
   // package.json does, so recipes contribute to it through a marker region — which means the
   // marker layer has to know that TOML comments are `#` and not `//`.
   toml: { comment: '#' },
+  // GraphQL SDL. The schema file carries a marker region so page modules can `extend type` it.
+  graphql: { comment: '#' },
 } as const satisfies Record<string, MarkerSyntax>;
 
 export class MissingMarkerError extends Error {
@@ -158,6 +160,7 @@ export function syntaxForPath(filePath: string): MarkerSyntax {
   if (/\.(ya?ml)$/.test(filePath)) return MARKER_SYNTAX.yaml;
   if (/\.(sh|bash)$/.test(filePath)) return MARKER_SYNTAX.shell;
   if (/\.toml$/.test(filePath)) return MARKER_SYNTAX.toml;
+  if (/\.(graphql|graphqls|gql)$/.test(filePath)) return MARKER_SYNTAX.graphql;
   // go.mod's comment syntax is `//`, which the default below already produces — but relying on
   // that is a coincidence waiting to break, so the file is matched deliberately.
   if (/(^|\/)go\.mod$/.test(filePath)) return MARKER_SYNTAX.go;

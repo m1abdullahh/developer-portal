@@ -35,6 +35,7 @@ import { nodeTsRecipe } from './api-node-ts.js';
 import { pythonFastapiRecipe } from './api-python-fastapi.js';
 import { goGinRecipe } from './api-go-gin.js';
 import { restRecipe, restPythonRecipe, restGoRecipe } from './api-rest.js';
+import { graphqlRecipe, graphqlPythonRecipe, graphqlGoRecipe } from './api-graphql.js';
 import { prismaRecipe } from './api-prisma.js';
 import { drizzleRecipe } from './api-drizzle.js';
 import { sqlmodelRecipe } from './api-sqlmodel.js';
@@ -87,6 +88,7 @@ export * from './api-node-ts.js';
 export * from './api-python-fastapi.js';
 export * from './api-go-gin.js';
 export * from './api-rest.js';
+export * from './api-graphql.js';
 export * from './api-prisma.js';
 export * from './api-drizzle.js';
 export * from './api-sqlmodel.js';
@@ -139,6 +141,11 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   restRecipe,
   restPythonRecipe,
   restGoRecipe,
+  // The second paradigm. Exactly one paradigm recipe per runtime applies to any spec — `appliesTo`
+  // keys on `api.paradigm` — so REST and GraphQL never both claim the routes marker.
+  graphqlRecipe,
+  graphqlPythonRecipe,
+  graphqlGoRecipe,
   // Two ORMs per runtime for Postgres; exactly one applies to any spec — `appliesTo` keys on
   // `api.orm` — so the shared compose template is never claimed twice.
   prismaRecipe,

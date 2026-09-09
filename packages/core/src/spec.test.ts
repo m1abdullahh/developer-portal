@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { apiOnlyGoSpec, spineSpec, uiOnlyVercelSpec } from './fixtures.js';
+import { apiOnlyGoSpec, apiOnlyPythonSpec, spineSpec, uiOnlyVercelSpec } from './fixtures.js';
 import { safeParseProjectSpec } from './spec.js';
 
 /** Returns the joined issue paths + messages for a spec expected to fail. */
@@ -54,7 +54,49 @@ describe('contradiction 3 — tRPC outside Node is rejected server-side', () => 
   });
 
   it('accepts tRPC on Node', () => {
-    expect(safeParseProjectSpec(spineSpec({ api: { paradigm: 'trpc' } })).success).toBe(true);
+    // The spine's data-backed page modules are REST-only (see moduleGate), so they come off:
+    // this test is about the paradigm rule, and the module rule has its own tests below.
+    expect(
+      safeParseProjectSpec(
+        spineSpec({
+          api: { paradigm: 'trpc' },
+          ui: { modules: { userManagement: false, settingsRbac: false } },
+        }),
+      ).success,
+    ).toBe(true);
+  });
+});
+
+describe('page modules that ship REST endpoints require the REST paradigm', () => {
+  it.each(['graphql', 'trpc'] as const)(
+    'rejects user management under %s, and says why',
+    (paradigm) => {
+      const found = issues(
+        spineSpec({ api: { paradigm }, ui: { modules: { settingsRbac: false } } }),
+      );
+      expect(found.join()).toMatch(/ui\.modules\.userManagement/);
+      expect(found.join()).toMatch(/REST/);
+    },
+  );
+
+  it('accepts GraphQL on Node once those modules are off', () => {
+    expect(
+      safeParseProjectSpec(
+        spineSpec({
+          api: { paradigm: 'graphql' },
+          ui: { modules: { userManagement: false, settingsRbac: false } },
+        }),
+      ).success,
+    ).toBe(true);
+  });
+
+  it('accepts GraphQL on FastAPI and Gin, which the matrix allows', () => {
+    expect(safeParseProjectSpec(apiOnlyPythonSpec({ api: { paradigm: 'graphql' } })).success).toBe(
+      true,
+    );
+    expect(safeParseProjectSpec(apiOnlyGoSpec({ api: { paradigm: 'graphql' } })).success).toBe(
+      true,
+    );
   });
 });
 

@@ -162,4 +162,26 @@ describe('module dependency gates', () => {
       moduleGate('authLayouts', { hasApi: true, hasDatabase: false, authMode: 'oauth' }).enabled,
     ).toBe(true);
   });
+
+  // The data-backed modules generate REST routes and a REST client. Offering them under GraphQL
+  // would produce a page that calls endpoints nothing generated — a spec that passes every check
+  // and 404s on first click.
+  it.each(['userManagement', 'settingsRbac', 'stripeBilling'] as const)(
+    'disables %s under GraphQL with a reason that points at Step 3',
+    (mod) => {
+      const gate = moduleGate(mod, { ...full, paradigm: 'graphql' });
+      expect(gate.enabled).toBe(false);
+      expect(gate.reason).toMatch(/REST/);
+      expect(gate.reason).toMatch(/Step 3/);
+    },
+  );
+
+  it('keeps auth layouts available under GraphQL — their handlers are stubs, not REST calls', () => {
+    expect(moduleGate('authLayouts', { ...full, paradigm: 'graphql' }).enabled).toBe(true);
+  });
+
+  it('treats an absent paradigm as no constraint, so callers without an API need not invent one', () => {
+    expect(moduleGate('userManagement', full).enabled).toBe(true);
+    expect(moduleGate('userManagement', { ...full, paradigm: 'rest' }).enabled).toBe(true);
+  });
 });
