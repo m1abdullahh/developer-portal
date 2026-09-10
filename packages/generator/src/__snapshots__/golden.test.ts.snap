@@ -6,6 +6,7 @@ exports[`golden — 'api-only-go' > post-install instructions 1`] = `
   "go run ./cmd/api",
   "docker compose up -d postgres",
   "go run ./cmd/migrate",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -15,6 +16,7 @@ exports[`golden — 'api-only-graphql' > post-install instructions 1`] = `
   "npm run dev",
   "docker compose up -d postgres",
   "npm run db:migrate",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -24,6 +26,7 @@ exports[`golden — 'api-only-graphql-go' > post-install instructions 1`] = `
   "go run ./cmd/api",
   "docker compose up -d postgres",
   "go run ./cmd/migrate",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -34,6 +37,7 @@ exports[`golden — 'api-only-graphql-python' > post-install instructions 1`] = 
   "docker compose up -d postgres",
   "uv run alembic revision --autogenerate -m "initial schema"",
   "uv run alembic upgrade head",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -44,6 +48,7 @@ exports[`golden — 'api-only-python' > post-install instructions 1`] = `
   "docker compose up -d postgres",
   "uv run alembic revision --autogenerate -m "initial schema"",
   "uv run alembic upgrade head",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -53,6 +58,7 @@ exports[`golden — 'api-only-trpc' > post-install instructions 1`] = `
   "npm run dev",
   "docker compose up -d postgres",
   "npm run db:migrate",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -62,6 +68,7 @@ exports[`golden — 'spine' > post-install instructions 1`] = `
   "npm run dev",
   "docker compose up -d postgres",
   "npm run db:migrate",
+  "docker compose up -d redis",
 ]
 `;
 
@@ -71,6 +78,7 @@ exports[`golden — 'trpc-fullstack' > post-install instructions 1`] = `
   "npm run dev",
   "docker compose up -d postgres",
   "npm run db:migrate",
+  "docker compose up -d redis",
 ]
 `;
 

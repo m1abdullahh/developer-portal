@@ -27,5 +27,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # Other local dependencies — the Redis cache, when selected — are added between these markers.
+  # >>> idp:compose-services
+  # api.cache.redis
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    # No volume: it is a cache. Anything that must survive a restart belongs in the database.
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  # <<< idp:compose-services
+
 volumes:
   postgres-data:

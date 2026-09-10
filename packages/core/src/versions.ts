@@ -147,6 +147,12 @@ export const GENERATED_VERSIONS = {
   '@trpc/client': '11.18.0',
   '@trpc/tanstack-react-query': '11.18.0',
 
+  // ── API: Redis cache layer (P3, `api.cache`) ─────────────────────────────
+  // The cache-aside helper, the readiness check and — when both are selected — the rate limiter's
+  // shared counters. 6.0.0 keeps the CommonJS entry the runtime imports; it needs Node 20, which
+  // every generated project exceeds. Verified on 2026-09-10.
+  ioredis: '6.0.0',
+
   // ── API: data ─────────────────────────────────────────────────────────────
   prisma: '7.9.1',
   '@prisma/client': '7.9.1',
@@ -236,6 +242,10 @@ export const PYTHON_VERSIONS = {
   // `strawberry export-schema` prints the SDL the other runtimes keep as a file. Declared with the
   // [fastapi] extra where it is required. Verified against PyPI on 2026-09-10.
   'strawberry-graphql': '0.327.7',
+
+  // ── API: Redis cache layer (P3) ──────────────────────────────────────────
+  // redis-py's asyncio client. Verified against PyPI on 2026-09-10.
+  redis: '8.1.0',
 } as const satisfies Record<string, string>;
 
 export type PythonPackage = keyof typeof PYTHON_VERSIONS;
@@ -277,6 +287,8 @@ export const GO_VERSIONS = {
   // schema-first without generation — the SDL is parsed at start-up and bound to resolver methods
   // by name. Verified against the module proxy on 2026-09-10.
   'github.com/graph-gophers/graphql-go': 'v1.10.2',
+  // ── API: Redis cache layer (P3) ──────────────────────────────────────────
+  'github.com/redis/go-redis/v9': 'v9.22.0',
 } as const satisfies Record<string, `v${string}`>;
 
 export type GoModule = keyof typeof GO_VERSIONS;

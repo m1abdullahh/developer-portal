@@ -37,6 +37,7 @@ import { goGinRecipe } from './api-go-gin.js';
 import { restRecipe, restPythonRecipe, restGoRecipe } from './api-rest.js';
 import { graphqlRecipe, graphqlPythonRecipe, graphqlGoRecipe } from './api-graphql.js';
 import { trpcRecipe, trpcClientRecipe } from './api-trpc.js';
+import { redisCacheRecipe, redisCachePythonRecipe, redisCacheGoRecipe } from './api-cache-redis.js';
 import { prismaRecipe } from './api-prisma.js';
 import { drizzleRecipe } from './api-drizzle.js';
 import { sqlmodelRecipe } from './api-sqlmodel.js';
@@ -91,6 +92,7 @@ export * from './api-go-gin.js';
 export * from './api-rest.js';
 export * from './api-graphql.js';
 export * from './api-trpc.js';
+export * from './api-cache-redis.js';
 export * from './api-prisma.js';
 export * from './api-drizzle.js';
 export * from './api-sqlmodel.js';
@@ -158,6 +160,10 @@ export const BUILT_IN_RECIPES: readonly Recipe[] = [
   sqlmodelRecipe,
   sqlalchemyRecipe,
   gormRecipe,
+  // The Redis cache layer, one per runtime — exactly one applies, keyed on `api.runtime`.
+  redisCacheRecipe,
+  redisCachePythonRecipe,
+  redisCacheGoRecipe,
   // The role and permission policy, emitted into whichever layers enforce it.
   apiPermissionsRecipe,
   pythonPermissionsRecipe,

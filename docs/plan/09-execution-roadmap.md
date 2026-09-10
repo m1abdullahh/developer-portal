@@ -321,7 +321,23 @@ and all four page modules, each smoke-verified.
   `DATABASE_URL` and ships the local Postgres compose service — and that no recipe exists for
   anything the ledger does not claim.
 
-- [ ] Redis cache-layer recipe across all three runtimes
+- [x] Redis cache-layer recipe across all three runtimes — complete. A client that connects lazily
+      and fails fast (ioredis, redis-py asyncio, go-redis), a cache-aside helper with stampede
+      protection (one load per key per process however many requests miss at once), `REDIS_URL`,
+      a readiness check, and a `redis` service in the compose file. With rate limiting also on,
+      the limiter's counters move to Redis on every runtime and the limit becomes global across
+      replicas; every limiter fails open when Redis is unreachable, because one that turns a cache
+      outage into a total outage has the wrong failure mode.
+
+  Until this landed the wizard's toggle promised "a cache client and a docker-compose service" and
+  delivered a comment: the generated README claimed a Redis-backed limiter that was in-memory.
+  A coverage test now asserts each runtime emits the client, the variable, the compose service
+  and the store wiring when the toggle is on — and none of them when it is off.
+
+  One structural change: `docker-compose.yml` belongs to whichever ORM recipe applies, so it now
+  declares an `idp:compose-services` region the cache recipe inserts into; with no database, the
+  cache recipe emits the file itself. Both render the service from one definition.
+
 - [x] All 5 middleware recipes ported to Python **and Go** with a uniform error envelope.
       The envelope, the variable names and the effective ordering are asserted across runtimes by
       `runtime-contract.test.ts` rather than left to convention — a chart setting `CORS_ORIGINS`

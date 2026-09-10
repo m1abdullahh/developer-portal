@@ -8,15 +8,17 @@ import { env } from '../config/env.js';
 /**
  * Request rate limiting.
  *
+<% if (spec.api.cache) { -%>
+ * Counters live in Redis (the `redis` option below, injected by the cache recipe), so the limit
+ * is GLOBAL across replicas rather than per pod. With Redis unreachable the limiter fails open —
+ * requests are served unlimited and the failure is logged — because a limiter that turns a cache
+ * outage into a total outage has the wrong failure mode.
+<% } else { -%>
  * ⚠️  Counters are IN-MEMORY, so the limit is PER INSTANCE, not global.
  *
  * With the Horizontal Pod Autoscaler enabled, a limit of <%= 'RATE_LIMIT_MAX' %> becomes that
  * value × replica-count, and the effective limit changes silently whenever the cluster scales.
- * That is rarely what anyone intends.
-<% if (spec.api.cache) { -%>
- *
- * This project selected the Redis cache layer, so a shared store is available. Wiring the
- * limiter to it makes limits global — see the `store` option in @fastify/rate-limit.
+ * That is rarely what anyone intends. Enable the Redis cache layer for a shared counter.
 <% } -%>
  *
  * Registered before authentication so unauthenticated floods are rejected before any token

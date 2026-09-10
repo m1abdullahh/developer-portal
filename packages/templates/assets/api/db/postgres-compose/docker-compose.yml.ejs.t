@@ -30,5 +30,9 @@ services:
       timeout: 5s
       retries: 5
 
+  # Other local dependencies — the Redis cache, when selected — are added between these markers.
+  # >>> idp:compose-services
+  # <<< idp:compose-services
+
 volumes:
   postgres-data:

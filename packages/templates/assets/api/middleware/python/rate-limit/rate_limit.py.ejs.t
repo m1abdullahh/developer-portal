@@ -1,14 +1,23 @@
 ---
 to: app/middleware/rate_limit.py
 ---
+<% if (spec.api.cache) { -%>
+import logging
+<% } else { -%>
 import time
 from collections import defaultdict
+<% } -%>
 
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import JSONResponse, Response
 
 from app.config import settings
+<% if (spec.api.cache) { -%>
+from app.lib.redis import redis_client
+
+logger = logging.getLogger("<%= spec.meta.slug %>")
+<% } -%>
 
 # Probes are exempt. Throttling /health means Kubernetes eventually fails the liveness check and
 # restarts a pod that was only ever guilty of being probed on schedule — a self-inflicted outage
@@ -29,6 +38,21 @@ def _window_seconds(value: str) -> int:
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
+<% if (spec.api.cache) { -%>
+    """Fixed-window counters in Redis, shared by every replica.
+
+    **The limit is global.** One INCR per request against a key that expires with the window, so
+    however many pods the autoscaler runs, a client gets the configured number of requests in total.
+
+    Fails open: with Redis unreachable the request is served unlimited and the failure logged. A
+    limiter that turns a cache outage into a total outage has the wrong failure mode.
+    """
+
+    def __init__(self, app: FastAPI, max_requests: int, window: int) -> None:
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.window = window
+<% } else { -%>
     """Fixed-window counters, per process.
 
     **The limit is per instance, not global.** With the HPA enabled a limit of 100 becomes
@@ -46,6 +70,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.window = window
         self.hits: dict[str, int] = defaultdict(int)
         self.window_started = time.monotonic()
+<% } -%>
 
     def _client_key(self, request: Request) -> str:
         # X-Forwarded-For's first entry is the original client; uvicorn is started with
@@ -60,6 +85,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in EXEMPT_PATHS:
             return await call_next(request)
 
+<% if (spec.api.cache) { -%>
+        key = f"ratelimit:{self._client_key(request)}"
+        try:
+            count = int(await redis_client.incr(key))
+            if count == 1:
+                await redis_client.expire(key, self.window)
+            reset_in = max(0, int(await redis_client.ttl(key)))
+        except Exception:
+            logger.warning("rate limiter store unavailable; request allowed", exc_info=True)
+            return await call_next(request)
+<% } else { -%>
         now = time.monotonic()
         elapsed = now - self.window_started
 
@@ -73,10 +109,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         key = self._client_key(request)
         self.hits[key] += 1
-        remaining = max(0, self.max_requests - self.hits[key])
+        count = self.hits[key]
         reset_in = max(0, int(self.window - elapsed))
+<% } -%>
 
-        if self.hits[key] > self.max_requests:
+        remaining = max(0, self.max_requests - count)
+
+        if count > self.max_requests:
             return JSONResponse(
                 status_code=429,
                 content={

@@ -308,6 +308,108 @@ describe('every implemented ORM generates its data layer', () => {
 });
 
 /** userManagement -> user-management. Recipe ids are kebab-case; the enum is camelCase. */
+/**
+ * The Redis cache toggle is a boolean, not an enum, so the ledger above cannot list it — yet it is
+ * the option that shipped hollow the longest: the wizard promised "a cache client and a
+ * docker-compose service" while the generator changed one comment. Each runtime is asserted to
+ * deliver the client, the readiness check, the variable, the compose service and — when rate
+ * limiting is on — counters in Redis.
+ */
+describe('the Redis cache layer', () => {
+  const RUNTIMES = [
+    {
+      runtime: 'node-ts',
+      orm: 'prisma',
+      client: 'src/lib/redis.ts',
+      helper: 'src/lib/cache.ts',
+      limiter: 'src/plugins/rate-limit.ts',
+      // The store wiring itself, not the word: the in-memory limiter's comment legitimately says
+      // \"enable the Redis cache layer\", so matching /redis/ would fail the off case for nothing.
+      store: 'skipOnError: true',
+      readiness: 'src/routes/health.ts',
+    },
+    {
+      runtime: 'python-fastapi',
+      orm: 'sqlmodel',
+      client: 'app/lib/redis.py',
+      helper: 'app/lib/cache.py',
+      limiter: 'app/middleware/rate_limit.py',
+      store: 'redis_client.incr(',
+      readiness: 'app/routes/health.py',
+    },
+    {
+      runtime: 'go-gin',
+      orm: 'gorm',
+      client: 'internal/cache/redis.go',
+      helper: 'internal/cache/redis.go',
+      limiter: 'internal/middleware/rate_limit.go',
+      store: 'cache.Client().Incr(',
+      readiness: 'internal/routes/health.go',
+    },
+  ] as const;
+
+  const text = (files: { path: string; content: unknown }[], path: string) =>
+    String(files.find((f) => f.path === path)?.content ?? '');
+
+  it.each(RUNTIMES)(
+    '$runtime: cache on delivers client, readiness, variable, compose and counters',
+    async (c) => {
+      const spec = spineSpec({
+        meta: { slug: `cache-${c.runtime}` },
+        ui: null,
+        api: {
+          runtime: c.runtime,
+          paradigm: 'rest',
+          database: 'postgres',
+          orm: c.orm,
+          cache: true,
+        },
+      } as Parameters<typeof spineSpec>[0]);
+      const { files } = await runPipeline(spec, { registry });
+
+      expect(
+        files.some((f) => f.path === c.client),
+        `${c.runtime}: no client`,
+      ).toBe(true);
+      expect(
+        files.some((f) => f.path === c.helper),
+        `${c.runtime}: no cache-aside helper`,
+      ).toBe(true);
+      expect(text(files, '.env.example')).toContain('REDIS_URL=redis://localhost:6379');
+      expect(text(files, 'docker-compose.yml')).toMatch(/^\s+redis:\n\s+image: redis:/m);
+      expect(text(files, c.readiness)).toMatch(/redis/i);
+      expect(text(files, c.limiter)).toContain(c.store);
+    },
+  );
+
+  it.each(RUNTIMES)('$runtime: cache off leaves no trace', async (c) => {
+    const spec = spineSpec({
+      meta: { slug: `nocache-${c.runtime}` },
+      ui: null,
+      api: { runtime: c.runtime, paradigm: 'rest', database: 'postgres', orm: c.orm, cache: false },
+    } as Parameters<typeof spineSpec>[0]);
+    const { files } = await runPipeline(spec, { registry });
+
+    expect(files.some((f) => f.path === c.client)).toBe(false);
+    expect(text(files, '.env.example')).not.toContain('REDIS_URL');
+    expect(text(files, 'docker-compose.yml')).not.toMatch(/^\s+redis:/m);
+    expect(text(files, c.readiness)).not.toMatch(/redis/i);
+    expect(text(files, c.limiter)).not.toContain(c.store);
+  });
+
+  it('emits its own compose file when there is no database to own one', async () => {
+    const spec = spineSpec({
+      meta: { slug: 'cache-no-db' },
+      ui: null,
+      api: { database: 'none', orm: 'none', cache: true },
+    });
+    const { files } = await runPipeline(spec, { registry });
+    const compose = text(files, 'docker-compose.yml');
+    expect(compose).toMatch(/^services:\n\s+redis:/m);
+    expect(compose).not.toContain('postgres');
+  });
+});
+
 function kebab(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 }

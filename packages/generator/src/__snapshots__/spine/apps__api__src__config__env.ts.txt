@@ -14,6 +14,8 @@ const schema = z.object({
   // >>> idp:env-schema
   // api.db.postgres-prisma
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  // api.cache.redis
+  REDIS_URL: z.string().url('REDIS_URL must be a redis:// URL'),
   // api.middleware.cors
   CORS_ORIGINS: z.string().default('http://localhost:3000'),
   // api.middleware.rate-limit

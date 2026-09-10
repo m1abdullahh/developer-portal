@@ -4,14 +4,22 @@ to: internal/middleware/rate_limit.go
 package middleware
 
 import (
+<% if (spec.api.cache) { -%>
+	"log/slog"
+<% } -%>
 	"net/http"
 	"strconv"
 	"strings"
+<% if (!spec.api.cache) { -%>
 	"sync"
+<% } -%>
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+<% if (spec.api.cache) { -%>
+	"github.com/<%= spec.meta.repo.org %>/<%= spec.meta.slug %>/internal/cache"
+<% } -%>
 	"github.com/<%= spec.meta.repo.org %>/<%= spec.meta.slug %>/internal/config"
 )
 
@@ -23,6 +31,41 @@ var exemptPaths = map[string]bool{
 	"/ready":  true,
 }
 
+<% if (spec.api.cache) { -%>
+// RateLimit applies fixed-window counters kept in Redis, shared by every replica.
+//
+// **The limit is global.** One INCR per request against a key that expires with the window, so
+// however many pods the autoscaler runs, a client gets the configured number of requests in total.
+//
+// Fails open: with Redis unreachable the request is served unlimited and the failure logged. A
+// limiter that turns a cache outage into a total outage has the wrong failure mode.
+func RateLimit(cfg *config.Config) gin.HandlerFunc {
+	window := parseWindow(cfg.RateLimitWindow)
+	limit := cfg.RateLimitMax
+
+	return func(c *gin.Context) {
+		if exemptPaths[c.Request.URL.Path] {
+			c.Next()
+			return
+		}
+
+		ctx := c.Request.Context()
+		key := "ratelimit:" + c.ClientIP()
+
+		count64, err := cache.Client().Incr(ctx, key).Result()
+		if err == nil && count64 == 1 {
+			err = cache.Client().Expire(ctx, key, window).Err()
+		}
+		if err != nil {
+			slog.Warn("rate limiter store unavailable; request allowed", "err", err)
+			c.Next()
+			return
+		}
+		count := int(count64)
+
+		ttl, _ := cache.Client().TTL(ctx, key).Result()
+		resetIn := int(ttl.Seconds())
+<% } else { -%>
 // RateLimit applies fixed-window counters, per process.
 //
 // **The limit is per instance, not global.** With the HPA enabled a limit of 100 becomes
@@ -58,6 +101,7 @@ func RateLimit(cfg *config.Config) gin.HandlerFunc {
 		count := hits[key]
 		resetIn := int((window - time.Since(windowStart)).Seconds())
 		mu.Unlock()
+<% } -%>
 
 		remaining := limit - count
 		if remaining < 0 {
