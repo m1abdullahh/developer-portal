@@ -139,6 +139,14 @@ export const GENERATED_VERSIONS = {
   '@graphql-codegen/typescript': '6.1.0',
   '@graphql-codegen/typescript-resolvers': '6.1.0',
 
+  // ── API: tRPC paradigm (P3) ──────────────────────────────────────────────
+  // v11, whose React integration is `@trpc/tanstack-react-query` — the `@trpc/react-query` package
+  // the plan names is the v10 one. Peers on @tanstack/react-query ^5.80, satisfied by the pin
+  // above. Verified on 2026-09-10; resolves alongside both the Node runtime and the web pins.
+  '@trpc/server': '11.18.0',
+  '@trpc/client': '11.18.0',
+  '@trpc/tanstack-react-query': '11.18.0',
+
   // ── API: data ─────────────────────────────────────────────────────────────
   prisma: '7.9.1',
   '@prisma/client': '7.9.1',

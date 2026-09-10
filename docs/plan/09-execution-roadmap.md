@@ -280,7 +280,30 @@ and all four page modules, each smoke-verified.
   runtime's pyproject set `exclude`, which replaces ruff's defaults including `.venv`, and only a
   git checkout's `.gitignore` had been hiding it — now `extend-exclude`.
 
-- [ ] Paradigm: `trpc` (Node-only, gated in the wizard with the reason)
+- [x] Paradigm: `trpc` — complete and enabled in the wizard. tRPC 11 on Fastify through its own
+      adapter; procedures declare `.input()` and `.output()` with Zod; `publicProcedure` and
+      `protectedProcedure` (the latter narrowing `ctx.user`, the token verified when the context
+      is built, never by a route guard). For the React frameworks a typed client: `useTRPC()` on
+      TanStack Query, with the query cache reused from the `react-query` state option or created
+      inside the tRPC provider otherwise — the "React Query will be added" note from doc 03 §2.3,
+      made real. Nuxt gets the server and a note; Vue clients are not generated.
+
+  The problem worth recording is how `AppRouter` crosses from the API to the UI. In a workspace
+  it is one import; a generated repository is two independent apps, and a type-only import of the
+  API's source would make the web resolve Fastify and Prisma from the wrong tree and break the
+  per-app image build. So the API emits declarations: `npm run trpc:types` runs
+  `tsc --emitDeclarationOnly` on the router and copies the four files its type needs into the web
+  app. Declaration emit erases implementations, so the copy references only `@trpc/server` and
+  `zod` — provided every procedure has an `.output()` schema, which is why they do. The generator
+  cannot run `tsc`, so at generation the web ships a placeholder declaring `AppRouter` as
+  `AnyRouter`; the first run replaces it. The smoke harness runs that step before it typechecks
+  the web, so `trpc-fullstack` verifies the client against the real router. Generated CI
+  regenerates the declarations and _warns_ on drift — a warning, not a failure, because the
+  scaffold commit carries the placeholder and must reach green.
+
+  One deviation: `@trpc/tanstack-react-query`, the v11 integration, not the `@trpc/react-query`
+  the plan names, which is v10's.
+
 - [x] ORMs: two per runtime for Postgres — Prisma + **Drizzle** (Node), SQLModel + **SQLAlchemy**
       (Python), GORM (Go). Each smoke-verified end to end. The remaining four are gated honestly
       rather than left as holes: `sqlc` is disabled in the wizard with a stated reason (its

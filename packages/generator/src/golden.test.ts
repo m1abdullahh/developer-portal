@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest';
 import {
   apiOnlyGoSpec,
   apiOnlyGraphqlSpec,
+  apiOnlyTrpcSpec,
   apiOnlyPythonSpec,
   spineSpec,
   uiOnlyVercelSpec,
@@ -87,6 +88,15 @@ const MATRIX: Array<{ name: string; spec: ProjectSpec }> = [
   { name: 'api-only-graphql', spec: apiOnlyGraphqlSpec() },
   { name: 'api-only-graphql-python', spec: apiOnlyPythonSpec({ api: { paradigm: 'graphql' } }) },
   { name: 'api-only-graphql-go', spec: apiOnlyGoSpec({ api: { paradigm: 'graphql' } }) },
+  { name: 'api-only-trpc', spec: apiOnlyTrpcSpec() },
+  {
+    name: 'trpc-fullstack',
+    spec: spineSpec({
+      meta: { slug: 'acme-rpc-fullstack' },
+      api: { paradigm: 'trpc' },
+      ui: { modules: { userManagement: false, settingsRbac: false } },
+    }),
+  },
 ];
 
 describe.each(MATRIX)('golden — $name', ({ name, spec }) => {

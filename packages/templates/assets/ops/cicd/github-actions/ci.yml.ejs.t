@@ -108,6 +108,17 @@ jobs:
         run: |
           if [ -d drizzle ]; then npx drizzle-kit migrate; fi
 <% } -%>
+<% if (trpcTypesTarget) { -%>
+      # The web app compiles against declarations emitted from this router. Regenerate them and warn
+      # when the committed copy differs — a warning rather than a failure, because the scaffold
+      # commit carries a placeholder and must still reach green. Run `npm run trpc:types` and commit.
+      - name: tRPC client declarations
+        run: |
+          npm run trpc:types
+          if [ -n "$(git status --porcelain -- <%= trpcTypesTarget %>)" ]; then
+            echo "::warning title=tRPC client types are stale::Run 'npm run trpc:types' in the API and commit <%= trpcTypesTarget %>."
+          fi
+<% } -%>
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test --if-present

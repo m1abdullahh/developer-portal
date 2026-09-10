@@ -142,6 +142,36 @@ const CASES = {
       },
     ],
   },
+  'api-trpc': {
+    description: 'Fastify + tRPC 11 + Prisma — typed procedures with Zod in and out; boot and call',
+    fixture: 'apiOnlyTrpcSpec',
+    override: { meta: { slug: 'smoke-api-trpc' } },
+    probes: [
+      {
+        name: 'GET /trpc/health',
+        path: '/trpc/health',
+        expectJson: (json) => json?.result?.data?.status === 'ok',
+      },
+    ],
+  },
+  'trpc-fullstack': {
+    description:
+      'Next.js + Fastify over tRPC — the API emits its router types and the web typechecks against them',
+    fixture: 'spineSpec',
+    override: {
+      meta: { slug: 'smoke-trpc-fullstack' },
+      api: { paradigm: 'trpc' },
+      // The data-backed page modules are REST-only; the gate refuses them under tRPC.
+      ui: { modules: { userManagement: false, settingsRbac: false } },
+    },
+    probes: [
+      {
+        name: 'GET /trpc/health',
+        path: '/trpc/health',
+        expectJson: (json) => json?.result?.data?.status === 'ok',
+      },
+    ],
+  },
   'api-drizzle': {
     description: 'Fastify with Drizzle — the TypeScript-schema data layer builds and boots',
     fixture: 'spineSpec',
@@ -812,8 +842,14 @@ async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv, probes 
 
 async function smokeCase(name, workspaceRoot) {
   startCase(name);
-  const { spineSpec, uiOnlyVercelSpec, apiOnlyPythonSpec, apiOnlyGoSpec, apiOnlyGraphqlSpec } =
-    await import('@idp/core');
+  const {
+    spineSpec,
+    uiOnlyVercelSpec,
+    apiOnlyPythonSpec,
+    apiOnlyGoSpec,
+    apiOnlyGraphqlSpec,
+    apiOnlyTrpcSpec,
+  } = await import('@idp/core');
   const { createRegistry, runPipeline, emitTree } = await import('@idp/generator');
 
   const fixtures = {
@@ -822,6 +858,7 @@ async function smokeCase(name, workspaceRoot) {
     apiOnlyPythonSpec,
     apiOnlyGoSpec,
     apiOnlyGraphqlSpec,
+    apiOnlyTrpcSpec,
   };
   const { fixture, override, probes } = CASES[name];
   const spec = fixtures[fixture](override);
@@ -903,6 +940,20 @@ async function smokeCase(name, workspaceRoot) {
      * CI failed on `eslint .` before reaching a single line of source. The harness must exercise
      * the same commands CI does, or it only proves the parts CI does not check.
      */
+    // A tRPC API emits its router's declarations into the web app, which is generated with a
+    // placeholder. Running this here — the API layer sorts before the web layer — means the web's
+    // typecheck below is against the real router, which is the whole claim being verified.
+    if (layer.scripts['trpc:types']) {
+      await step(`${label}: trpc:types`, async () => {
+        const { code, output } = await run('npm', ['run', 'trpc:types'], {
+          cwd: dir,
+          timeout: 300_000,
+          env: layerEnv,
+        });
+        if (code !== 0) throw new Error(output);
+      });
+    }
+
     for (const script of ['lint', 'typecheck', 'test']) {
       if (!layer.scripts[script]) continue;
 

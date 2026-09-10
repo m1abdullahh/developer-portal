@@ -144,8 +144,9 @@ export const API_PARADIGMS: Record<ApiParadigm, OptionMeta> = {
   },
   trpc: {
     label: 'tRPC',
-    description: 'End-to-end inference with no schema step. Node only.',
-    comingIn: 'P3',
+    description:
+      'End-to-end inference with no schema step. Node only; the React client rides on TanStack ' +
+      'Query, added if your store is not already it. Data-backed page modules need REST.',
   },
 };
 

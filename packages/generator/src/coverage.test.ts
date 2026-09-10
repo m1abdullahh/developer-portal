@@ -38,7 +38,7 @@ const IMPLEMENTED = {
   stylings: ['tailwind-shadcn', 'css-modules', 'mui'],
   states: ['zustand', 'redux-toolkit', 'react-query', 'context'],
   runtimes: ['node-ts', 'python-fastapi', 'go-gin'],
-  paradigms: ['rest', 'graphql'],
+  paradigms: ['rest', 'graphql', 'trpc'],
   databases: ['postgres', 'none'],
   /**
    * Two ORMs per runtime for Postgres. The mongo ORMs (mongoose, beanie, mongo-go) are absent

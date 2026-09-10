@@ -16,6 +16,8 @@ export const PROVIDER_PRIORITY = {
   theme: 20,
   /** Server-state cache. Auth below it may issue queries. */
   query: 30,
+  /** The tRPC client rides on the query cache, so it sits just inside it. */
+  trpc: 35,
   /** Client store. Auth state is commonly kept here. */
   store: 40,
   /** Reads from store and/or query, so it must be inside both. */

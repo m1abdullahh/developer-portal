@@ -169,6 +169,25 @@ export function apiOnlyGraphqlSpec(override: DeepPartial<ProjectSpec> = {}): Pro
   );
 }
 
+/**
+ * API-only Node service on the tRPC paradigm (P3). Prisma stays on for the same reason as the
+ * GraphQL fixture: the example procedures need a model, or the paradigm is exercised without any
+ * input validation or output schema in play.
+ */
+export function apiOnlyTrpcSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
+  return spineSpec(
+    merge(
+      {
+        meta: { slug: 'acme-rpc-api', deploymentTarget: 'onprem-k8s' },
+        ui: null,
+        api: { runtime: 'node-ts', paradigm: 'trpc', database: 'postgres', orm: 'prisma' },
+        ops: { cicd: { registry: 'ghcr' } },
+      } as DeepPartial<ProjectSpec>,
+      override,
+    ),
+  );
+}
+
 /** API-only Go service. Awaiting `api.runtime.go-gin`; see apiOnlyPythonSpec for why. */
 export function apiOnlyGoSpec(override: DeepPartial<ProjectSpec> = {}): ProjectSpec {
   return spineSpec(
