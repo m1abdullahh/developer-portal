@@ -100,6 +100,19 @@ the npm that GitHub's Node 22 runners ship, so their CI would have failed on the
 `scripts/check-versions.mjs` did not catch this: every pin still _resolves_. Only the smoke harness,
 which runs a real `npm install`, can — which is the argument for it in doc 08 §3 made concrete.
 
+### Generated Nuxt projects pin pinia **4.0.3** and @pinia/nuxt **1.0.2**
+
+Found on 2026-09-10 from the PR smoke job. Every Nuxt case installed, linted, typechecked and built,
+then answered `GET /` with a 500: `@pinia/nuxt`'s `app:rendered` hook read `useNuxtApp().$pinia`
+and found it undefined. Nothing in the generated code changed; Nuxt's floating dependencies did —
+`unctx` 3.0.1, `@nuxt/kit` 4.5.2 and `unhead` 3.4 all shipped after the pins were verified, and the
+exact-pinned module stopped agreeing with the context machinery under it. Moving to the module's
+next release fixes the render; it peers on pinia ^4.0.3, so both pins move.
+
+Two things worth keeping from it. An exact pin protects against the package it names and nothing
+else — the ground under it still moves, and only running the result catches that. And a build
+that succeeds says nothing about a page that renders, which is why the harness boots and probes.
+
 ## Portal
 
 | Package               | Version                   |

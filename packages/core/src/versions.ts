@@ -95,8 +95,14 @@ export const GENERATED_VERSIONS = {
   // Four wizard options collapse onto three implementations here. Zustand and Redux Toolkit both
   // map to Pinia — Vue has one idiomatic store, and manufacturing a second to honour a table row
   // would ship a worse project than admitting the mapping.
-  pinia: '4.0.2',
-  '@pinia/nuxt': '1.0.1',
+  // 4.0.3 / 1.0.2, moved on 2026-09-10. The previous pair (4.0.2 / 1.0.1) rendered every Nuxt
+  // page as a 500: the module's `app:rendered` hook read `useNuxtApp().$pinia` and found it
+  // undefined, after Nuxt's floating context packages (unctx 3.0.1, @nuxt/kit 4.5.2, unhead 3.4)
+  // moved under the exact pin. Install, lint, typecheck and build all passed; only a request
+  // failed — which is why the smoke harness boots what it builds. The module's 1.0.2 peers on
+  // pinia ^4.0.3, so the two move together.
+  pinia: '4.0.3',
+  '@pinia/nuxt': '1.0.2',
   // Same version as the React query client, which TanStack releases in lockstep across adapters.
   // Verified on 2026-08-01.
   '@tanstack/vue-query': '5.101.4',
