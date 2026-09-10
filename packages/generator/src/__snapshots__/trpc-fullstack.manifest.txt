@@ -1,5 +1,5 @@
 7ac90f65e852  .github/workflows/cd.yml
-b4f327275052  .github/workflows/ci.yml
+1ac67e5df42e  .github/workflows/ci.yml
 a79807f3d7b5  .gitignore
 07f1b7b2161c  apps/api/.dockerignore
 b935a56d600d  apps/api/.env.example

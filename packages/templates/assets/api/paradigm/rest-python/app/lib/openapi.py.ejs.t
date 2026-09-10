@@ -34,7 +34,18 @@ def install_openapi(app: FastAPI) -> None:
             openapi_version="3.1.0",
             description="<%= (spec.meta.description || spec.meta.slug).replace(/"/g, '\\"') %>",
             routes=app.routes,
-            contact={"name": "<%= spec.meta.repo.org %>"},
+            contact={
+                "name": "<%= spec.meta.repo.org %>",
+                "url": "https://github.com/<%= spec.meta.repo.org %>/<%= spec.meta.slug %>",
+            },
+            # Every tag an operation uses, declared here with a description. A tag used by a route
+            # but absent from this list is a lint finding (spectral: operation-tag-defined) and an
+            # unnamed group in every generated client. Routers add theirs through the marker.
+            tags=[
+                {"name": "health", "description": "Liveness and readiness probes"},
+                # >>> idp:openapi-tags
+                # <<< idp:openapi-tags
+            ],
         )
 
         schema["servers"] = [{"url": "/", "description": "This deployment"}]

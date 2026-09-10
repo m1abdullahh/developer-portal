@@ -16,7 +16,7 @@ import { README_ORDER } from '../merge/readme.js';
 import { runtimeContract } from '../runtime-contract.js';
 import { publicEnvVars } from '../framework-contract.js';
 import { trpcClientApplies, trpcTypesTarget } from './api-trpc.js';
-import type { Recipe } from '../types.js';
+import type { Recipe, RecipeContext } from '../types.js';
 
 export const ARGOCD_RECIPE_ID = 'ops.gitops.argocd';
 
@@ -63,6 +63,33 @@ export const argocdRecipe: Recipe = {
 
 export const GITHUB_ACTIONS_RECIPE_ID = 'ops.cicd.github-actions';
 
+/**
+ * The API layer's documented environment as the CI job sees it.
+ *
+ * Every runtime parses its configuration at start-up and refuses to run with a required key
+ * missing — the right behaviour for a pod, and the reason a bare CI job fails before the first
+ * test: FastAPI's `Settings` is parsed when pytest imports the app, `config.Load` when the Go
+ * migration runner starts. So the job carries the `.env.example` values, the way the smoke
+ * harness does. `DATABASE_URL` is left out because the job's Postgres service sets it, and secrets
+ * — which `.env.example` never carries a value for — get a throwaway string long enough to pass
+ * every runtime's length check and obviously not a real one.
+ */
+export function ciApiEnv(ctx: RecipeContext): ReadonlyArray<{ key: string; value: string }> {
+  if (!ctx.spec.api) return [];
+  const seen = new Set<string>();
+  const out: Array<{ key: string; value: string }> = [];
+  for (const v of ctx.envVars('api')) {
+    if (v.key === 'DATABASE_URL' || seen.has(v.key)) continue;
+    seen.add(v.key);
+    const value =
+      v.secret || !v.example
+        ? `ci-only-${v.key.toLowerCase().replaceAll('_', '-')}-not-a-real-secret`
+        : v.example;
+    out.push({ key: v.key, value });
+  }
+  return out;
+}
+
 export const githubActionsRecipe: Recipe = {
   id: GITHUB_ACTIONS_RECIPE_ID,
   phase: 'integration',
@@ -86,6 +113,8 @@ export const githubActionsRecipe: Recipe = {
       runtime: ctx.spec.api ? runtimeContract(ctx.spec) : null,
       // The web job's build and the web image's build-args — one list, so they cannot disagree.
       publicEnv: publicEnvVars(ctx),
+      // The API job runs the service's documented environment; see ciApiEnv.
+      apiEnv: ciApiEnv(ctx),
       // Where the API job re-emits the tRPC client's declarations, or null when there is no client.
       trpcTypesTarget: trpcClientApplies(ctx.spec) ? trpcTypesTarget(ctx.spec) : null,
       // setup-uv pins the same version the Dockerfile copies, so CI and the image resolve

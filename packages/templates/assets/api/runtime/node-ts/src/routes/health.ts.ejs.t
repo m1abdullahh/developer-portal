@@ -17,13 +17,48 @@ import type { FastifyInstance } from 'fastify';
  * turning a recoverable outage into a total one.
  */
 export async function registerHealthRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/health', async () => ({
-    status: 'ok',
-    service: '<%= spec.meta.slug %>',
-    uptime: process.uptime(),
-  }));
+<% if (spec.api.paradigm === 'rest') { -%>
+  // The `schema` metadata is for the OpenAPI document: operationId, tag and description are what
+  // a linter — and a generated client — need from every operation. Fastify validates nothing
+  // from it. The keys are declared by @fastify/swagger's type augmentation, which only a REST
+  // project installs; elsewhere they would be excess properties and fail the typecheck.
+<% } -%>
+  app.get(
+    '/health',
+<% if (spec.api.paradigm === 'rest') { -%>
+    {
+      schema: {
+        operationId: 'getHealth',
+        tags: ['system'],
+        summary: 'Liveness',
+        description:
+          'Answers whether this process is wedged. Checks nothing downstream, so a dependency ' +
+          'outage never restarts the pods.',
+      },
+    },
+<% } -%>
+    async () => ({
+      status: 'ok',
+      service: '<%= spec.meta.slug %>',
+      uptime: process.uptime(),
+    }),
+  );
 
-  app.get('/ready', async (_request, reply) => {
+  app.get(
+    '/ready',
+<% if (spec.api.paradigm === 'rest') { -%>
+    {
+      schema: {
+        operationId: 'getReadiness',
+        tags: ['system'],
+        summary: 'Readiness',
+        description:
+          'Answers whether this pod can serve traffic right now: 200 with every dependency ' +
+          'check passing, 503 with the failing ones named.',
+      },
+    },
+<% } -%>
+    async (_request, reply) => {
     const checks: Record<string, 'ok' | 'error'> = {};
 
     // >>> idp:readiness-checks
@@ -34,5 +69,6 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
       status: failed ? 'unavailable' : 'ready',
       checks,
     });
-  });
+    },
+  );
 }

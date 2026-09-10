@@ -150,6 +150,18 @@ export const apiSettingsRbacRecipe: Recipe = {
       args: { module: './routes/settings.js', named: ['registerSettingsRoutes'] },
     },
     {
+      file: 'src/plugins/openapi.ts',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'openapi-tags',
+        lines: [
+          "{ name: 'settings', description: 'Organisation settings, permissions, audit log and API keys' },",
+        ],
+        priority: 20,
+        recipeId: API_SETTINGS_RBAC_RECIPE_ID,
+      },
+    },
+    {
       file: 'src/server.ts',
       kind: 'addImport',
       args: { module: './lib/access.js', named: ['initAccessPolicy'] },

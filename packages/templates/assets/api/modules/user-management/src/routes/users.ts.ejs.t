@@ -43,6 +43,11 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         tags: ['users'],
         summary: 'List users',
+        operationId: 'listUsers',
+        description:
+          'Returns one page of users, newest first, filtered by role, status or a free-text ' +
+          'query. Page with the cursor the response returns; it is the id of the last row, ' +
+          'not an offset.',
         querystring: listUsersQuerySchema,
         response: { 200: paginatedSchema(userSchema), ...commonResponses },
       },
@@ -86,6 +91,10 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         tags: ['users'],
         summary: 'Invite a user',
+        operationId: 'inviteUser',
+        description:
+          'Creates a user in the invited state. Answers 409 when the email address is already ' +
+          'taken.',
         body: inviteUserSchema,
         response: { 201: userSchema, ...conflict, ...commonResponses },
       },
@@ -126,6 +135,8 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         tags: ['users'],
         summary: 'Fetch one user',
+        operationId: 'getUser',
+        description: 'Returns one user by id, or 404.',
         params: userIdParamSchema,
         response: { 200: userSchema, ...commonResponses },
       },
@@ -143,6 +154,8 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         tags: ['users'],
         summary: 'Update a user’s name, role or status',
+        operationId: 'updateUser',
+        description: 'Changes only the fields given and leaves the rest untouched.',
         params: userIdParamSchema,
         body: updateUserSchema,
         response: { 200: userSchema, ...conflict, ...commonResponses },
@@ -189,6 +202,8 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
       schema: {
         tags: ['users'],
         summary: 'Delete a user',
+        operationId: 'deleteUser',
+        description: 'Removes the user and answers 204 with no body.',
         params: userIdParamSchema,
         // Fastify strips the body of a 204 before serialisation, so this schema documents the
         // absence rather than describing something that gets sent.

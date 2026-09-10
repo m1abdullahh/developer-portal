@@ -37,6 +37,14 @@ func Install(r *gin.Engine) huma.API {
 	config.OpenAPIPath = "/openapi"
 
 	config.Info.Description = "<%= (spec.meta.description || spec.meta.slug).replace(/"/g, '\\"') %>"
+	// Who to ask: the repository, where the issues go. And where the API is: "/" — this
+	// deployment, whatever host it is reached on. spectral's `oas` ruleset treats a document
+	// without either as incomplete, and the Node and Python runtimes declare the same two.
+	config.Info.Contact = &huma.Contact{
+		Name: "<%= spec.meta.repo.org %>",
+		URL:  "https://github.com/<%= spec.meta.repo.org %>/<%= spec.meta.slug %>",
+	}
+	config.Servers = []*huma.Server{{URL: "/", Description: "This deployment"}}
 <% if (spec.api.middleware.auth === 'jwt') { -%>
 
 	// The bearer scheme, so /docs can send an Authorization header and a generated client knows

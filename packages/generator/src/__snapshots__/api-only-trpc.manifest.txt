@@ -1,7 +1,7 @@
 07f1b7b2161c  .dockerignore
 b935a56d600d  .env.example
 23a8a2bfcb2e  .github/workflows/cd.yml
-050619cbc56d  .github/workflows/ci.yml
+67315508c8fb  .github/workflows/ci.yml
 391295c4ae2d  .gitignore
 0737d1601210  deploy/Chart.yaml
 93f101b20208  deploy/templates/_helpers.tpl

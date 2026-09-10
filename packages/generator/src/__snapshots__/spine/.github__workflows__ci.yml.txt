@@ -67,6 +67,18 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+      # The service's documented environment, so the steps below run the way they do against a
+      # developer's .env. Configuration is parsed at start-up and a missing key stops the process
+      # — which is right for a pod and would be a failed test collection here. These are the
+      # .env.example values; secrets get throwaway values that exist only inside this job.
+      PORT: '3001'
+      LOG_LEVEL: 'info'
+      CORS_ORIGINS: 'http://localhost:3000'
+      RATE_LIMIT_MAX: '100'
+      RATE_LIMIT_WINDOW: '1 minute'
+      JWT_SECRET: 'ci-only-jwt-secret-not-a-real-secret'
+      JWT_EXPIRES_IN: '15m'
+      REDIS_URL: 'redis://localhost:6379'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

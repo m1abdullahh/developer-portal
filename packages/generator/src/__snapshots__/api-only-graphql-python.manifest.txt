@@ -1,11 +1,11 @@
 7fdf9d1d6890  .dockerignore
 7e43fb3b524b  .env.example
 81de040c89b3  .github/workflows/cd.yml
-d6e8cc42923e  .github/workflows/ci.yml
+400d3258d225  .github/workflows/ci.yml
 da69c6cba6ee  .gitignore
 49a506dd3209  .python-version
 8b2ef9d16865  alembic.ini
-e46e2e3eb027  app/__init__.py
+9efc25861eb6  app/__init__.py
 578d2a227c91  app/__main__.py
 b6acaf96c8d4  app/config.py
 2bc0e2e3a930  app/db/__init__.py
@@ -55,5 +55,5 @@ b986c0b70ef6  gitops/application-prod.yaml
 ddc9deb2420c  pyproject.toml
 7efde249000d  README.md
 5043cc07e0d1  SECRETS.md
-353c4680c478  tests/test_graphql.py
+b674137a58ab  tests/test_graphql.py
 06e932411654  tests/test_health.py

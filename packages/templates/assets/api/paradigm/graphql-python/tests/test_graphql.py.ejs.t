@@ -14,7 +14,10 @@ def test_health_query_answers() -> None:
     assert response.status_code == 200
     body = response.json()
     assert "errors" not in body
-    assert body["data"]["health"] == {"status": "ok", "service": "<%= spec.meta.slug %>"}
+    assert body["data"]["health"] == {
+        "status": "ok",
+        "service": "<%= spec.meta.slug %>",
+    }
 
 
 def test_schema_is_served_as_sdl() -> None:

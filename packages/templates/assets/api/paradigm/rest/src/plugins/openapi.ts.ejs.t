@@ -35,9 +35,22 @@ export async function registerOpenApi(app: FastifyInstance): Promise<void> {
         title: '<%= spec.meta.projectName %> API',
         description: <%- h.json(spec.meta.description ?? `API for ${spec.meta.projectName}`) %>,
         version: '0.1.0',
+        // Who to ask. The repository, because that is where the issues go; spectral's `oas`
+        // ruleset treats a document without a contact as incomplete, and it is right.
+        contact: {
+          name: '<%= spec.meta.repo.org %>',
+          url: 'https://github.com/<%= spec.meta.repo.org %>/<%= spec.meta.slug %>',
+        },
       },
       servers: [{ url: `http://localhost:${env.PORT}`, description: 'Local development' }],
-      tags: [{ name: 'system', description: 'Health and readiness' }],
+      // Every tag an operation uses, declared with a description. A tag used by a route but absent
+      // here is a lint finding (spectral: operation-tag-defined) and an unnamed group in every
+      // generated client. Page modules add theirs through the marker.
+      tags: [
+        { name: 'system', description: 'Health and readiness' },
+        // >>> idp:openapi-tags
+        // <<< idp:openapi-tags
+      ],
     },
     transform: jsonSchemaTransform,
   });

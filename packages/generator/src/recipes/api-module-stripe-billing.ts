@@ -184,6 +184,16 @@ export const apiStripeBillingRecipe: Recipe = {
       args: { module: './routes/billing.js', named: ['registerBillingRoutes'] },
     },
     {
+      file: 'src/plugins/openapi.ts',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'openapi-tags',
+        lines: ["{ name: 'billing', description: 'Plans, subscriptions, Checkout and invoices' },"],
+        priority: 30,
+        recipeId: API_STRIPE_BILLING_RECIPE_ID,
+      },
+    },
+    {
       file: 'src/server.ts',
       kind: 'addImport',
       args: { module: './routes/stripe-webhook.js', named: ['registerStripeWebhook'] },

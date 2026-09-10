@@ -1,5 +1,5 @@
 cc1a8c260f0d  .github/workflows/cd.yml
-ce2c5036d3c6  .github/workflows/ci.yml
+2ffe11abd8ba  .github/workflows/ci.yml
 3f1a9979c9fb  .gitignore
 07f1b7b2161c  apps/api/.dockerignore
 b935a56d600d  apps/api/.env.example
@@ -20,12 +20,12 @@ dccdffbd4e27  apps/api/src/lib/redis.ts
 412f8da02844  apps/api/src/lib/validation-error.ts
 7dd7aae3024c  apps/api/src/plugins/auth.ts
 3be5832944e7  apps/api/src/plugins/cors.ts
-06e047b92afa  apps/api/src/plugins/openapi.ts
+fc637e18e7fe  apps/api/src/plugins/openapi.ts
 3294f0827485  apps/api/src/plugins/rate-limit.ts
 af22a8bf5ab9  apps/api/src/plugins/request-context.ts
-879a676a0101  apps/api/src/routes/health.ts
-5750513be6a5  apps/api/src/routes/settings.ts
-89da3f8921fa  apps/api/src/routes/users.ts
+d9e5a381b4ff  apps/api/src/routes/health.ts
+bdd2e8b95214  apps/api/src/routes/settings.ts
+d41b5eb2b140  apps/api/src/routes/users.ts
 7472871b7681  apps/api/src/schemas/common.ts
 6c6f5daf5f7f  apps/api/src/schemas/settings.ts
 e9a63fe784fa  apps/api/src/schemas/user.ts

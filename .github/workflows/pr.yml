@@ -134,11 +134,21 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
-      # With a reachable database the harness requires /ready to return 200, not merely to
-      # answer. That turns the readiness probe into a real assertion about Prisma connecting.
+      # With every declared dependency reachable the harness requires /ready to return 200, not
+      # merely to answer. That turns the readiness probe into a real assertion about the database
+      # client and the Redis client connecting — the spine selects both.
       SMOKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/smoke
+      SMOKE_REDIS_URL: redis://127.0.0.1:6379
       # A missing toolchain fails the run rather than skipping its layers. Locally a skip with a
       # warning is the right behaviour; here it is a silent coverage hole — the Python cases ran
       # as zero-step no-ops for exactly as long as nothing enforced this.

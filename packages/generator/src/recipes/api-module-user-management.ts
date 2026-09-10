@@ -124,6 +124,16 @@ export const apiUserManagementRecipe: Recipe = {
       kind: 'addImport',
       args: { module: './routes/users.js', named: ['registerUserRoutes'] },
     },
+    {
+      file: 'src/plugins/openapi.ts',
+      kind: 'insertAtMarker',
+      args: {
+        marker: 'openapi-tags',
+        lines: ["{ name: 'users', description: 'Accounts, invitations and roles' },"],
+        priority: 10,
+        recipeId: API_USER_MANAGEMENT_RECIPE_ID,
+      },
+    },
   ],
 
   readme: () => ({

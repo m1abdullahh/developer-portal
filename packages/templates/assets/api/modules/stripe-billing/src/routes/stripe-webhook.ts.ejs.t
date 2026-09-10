@@ -43,7 +43,11 @@ export async function registerStripeWebhook(app: FastifyInstance): Promise<void>
       },
     );
 
-    scope.post('/webhooks/stripe', { config: { rawBody: true } }, async (request, reply) => {
+    // `hide`: the endpoint is Stripe's, not the client API's, so it stays out of /openapi.json.
+    scope.post(
+      '/webhooks/stripe',
+      { config: { rawBody: true }, schema: { hide: true } },
+      async (request, reply) => {
       const signature = request.headers['stripe-signature'];
 
       if (typeof signature !== 'string') {

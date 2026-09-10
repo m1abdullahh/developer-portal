@@ -22,7 +22,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, readFile, access } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
@@ -38,6 +38,56 @@ const IS_WINDOWS = process.platform === 'win32';
  * structural axes that actually change what gets built: two layers vs one, a flat layout vs an
  * apps/ prefix, and Prisma present vs absent.
  */
+/**
+ * What proves a paradigm, beyond /health. A GraphQL or tRPC service whose only working route is
+ * /health is indistinguishable from REST by the default probes, and a REST service's OpenAPI
+ * document is the contract the catalog reads — so each paradigm gets the probe that would catch
+ * its transport being broken. Shared by the named cases below and by the T2 API matrix.
+ */
+const PARADIGM_PROBES = {
+  rest: [
+    {
+      name: 'GET /openapi.json',
+      path: '/openapi.json',
+      expectText: (text) => text.includes('"openapi"'),
+      // Kept for the spectral step below: the document exists only in the booted process.
+      saveAs: 'openapi.json',
+    },
+  ],
+  graphql: [
+    {
+      name: 'POST /graphql { health }',
+      method: 'POST',
+      path: '/graphql',
+      body: { query: '{ health { status service } }' },
+      expectJson: (json) => json?.data?.health?.status === 'ok',
+    },
+    {
+      name: 'GET /schema.graphql',
+      path: '/schema.graphql',
+      expectText: (text) => text.includes('type Query'),
+    },
+  ],
+  trpc: [
+    {
+      name: 'GET /trpc/health',
+      path: '/trpc/health',
+      expectJson: (json) => json?.result?.data?.status === 'ok',
+    },
+  ],
+};
+
+/**
+ * The OpenAPI linter, run against the document each REST service actually serves. /openapi.json is
+ * built at runtime from the route schemas on every runtime, so it can only be linted from a booted
+ * process — which is why this lives in the smoke harness rather than in ops-lint with hadolint and
+ * kubeconform, though doc 08 §3 lists all three together as static analysis of the output. The P3
+ * gate asks for a spectral-clean document; the `oas` ruleset at warning severity is what "clean"
+ * means here. Fetched through npx at a pinned version, so the harness carries no dependency of its
+ * own and CI and a laptop lint with the same rules.
+ */
+const SPECTRAL = '@stoplight/spectral-cli@6.16.3';
+
 const CASES = {
   spine: {
     description: 'Next.js + Fastify + Prisma, all middleware — the Phase 1 gate combination',
@@ -88,71 +138,26 @@ const CASES = {
     override: { meta: { slug: 'smoke-api-graphql' } },
     // /health proves the process; these prove the paradigm. A GraphQL service whose only working
     // route is /health is indistinguishable from a REST one by the default probes.
-    probes: [
-      {
-        name: 'POST /graphql { health }',
-        method: 'POST',
-        path: '/graphql',
-        body: { query: '{ health { status service } }' },
-        expectJson: (json) => json?.data?.health?.status === 'ok',
-      },
-      {
-        name: 'GET /schema.graphql',
-        path: '/schema.graphql',
-        expectText: (text) => text.includes('type Query'),
-      },
-    ],
+    probes: PARADIGM_PROBES.graphql,
   },
   'api-graphql-python': {
     description: 'FastAPI + Strawberry — code-first GraphQL; uv sync, ruff, pytest, boot and query',
     fixture: 'apiOnlyPythonSpec',
     override: { api: { paradigm: 'graphql' }, meta: { slug: 'smoke-api-graphql-python' } },
-    probes: [
-      {
-        name: 'POST /graphql { health }',
-        method: 'POST',
-        path: '/graphql',
-        body: { query: '{ health { status service } }' },
-        expectJson: (json) => json?.data?.health?.status === 'ok',
-      },
-      {
-        name: 'GET /schema.graphql',
-        path: '/schema.graphql',
-        expectText: (text) => text.includes('type Query'),
-      },
-    ],
+    probes: PARADIGM_PROBES.graphql,
   },
   'api-graphql-go': {
     description:
       'Gin + graph-gophers — schema-first GraphQL without codegen; vet, test, build, boot, query',
     fixture: 'apiOnlyGoSpec',
     override: { api: { paradigm: 'graphql' }, meta: { slug: 'smoke-api-graphql-go' } },
-    probes: [
-      {
-        name: 'POST /graphql { health }',
-        method: 'POST',
-        path: '/graphql',
-        body: { query: '{ health { status service } }' },
-        expectJson: (json) => json?.data?.health?.status === 'ok',
-      },
-      {
-        name: 'GET /schema.graphql',
-        path: '/schema.graphql',
-        expectText: (text) => text.includes('type Query'),
-      },
-    ],
+    probes: PARADIGM_PROBES.graphql,
   },
   'api-trpc': {
     description: 'Fastify + tRPC 11 + Prisma — typed procedures with Zod in and out; boot and call',
     fixture: 'apiOnlyTrpcSpec',
     override: { meta: { slug: 'smoke-api-trpc' } },
-    probes: [
-      {
-        name: 'GET /trpc/health',
-        path: '/trpc/health',
-        expectJson: (json) => json?.result?.data?.status === 'ok',
-      },
-    ],
+    probes: PARADIGM_PROBES.trpc,
   },
   'trpc-fullstack': {
     description:
@@ -164,13 +169,7 @@ const CASES = {
       // The data-backed page modules are REST-only; the gate refuses them under tRPC.
       ui: { modules: { userManagement: false, settingsRbac: false } },
     },
-    probes: [
-      {
-        name: 'GET /trpc/health',
-        path: '/trpc/health',
-        expectJson: (json) => json?.result?.data?.status === 'ok',
-      },
-    ],
+    probes: PARADIGM_PROBES.trpc,
   },
   'api-drizzle': {
     description: 'Fastify with Drizzle — the TypeScript-schema data layer builds and boots',
@@ -657,9 +656,29 @@ function exampleEnv(exampleContent, into = {}) {
   return into;
 }
 
+/**
+ * The backing services a generated API may declare, and the variable that points this run at a
+ * real one. Seeded into every environment the harness builds, ahead of the documented example —
+ * `.env.example` says `localhost:5432`, which is nowhere in CI and someone else's database on a
+ * laptop.
+ */
+const DEPENDENCY_ENV = { DATABASE_URL: 'SMOKE_DATABASE_URL', REDIS_URL: 'SMOKE_REDIS_URL' };
+
+function dependencyEnv() {
+  return Object.fromEntries(Object.keys(DEPENDENCY_ENV).map((key) => [key, placeholderFor(key)]));
+}
+
+/** Dependencies the layer declares in .env.example that this run has no real instance of. */
+function unreachableDependencies(exampleContent) {
+  return Object.keys(exampleEnv(exampleContent)).filter(
+    (key) => DEPENDENCY_ENV[key] && !process.env[DEPENDENCY_ENV[key]],
+  );
+}
+
 /** The same keys, plus what an API needs at boot that no `.env.example` documents. */
 function apiEnv(exampleContent, port) {
   return exampleEnv(exampleContent, {
+    ...dependencyEnv(),
     PORT: String(port),
     // Both spellings, one per runtime family; each service reads its own and ignores the other.
     NODE_ENV: 'production',
@@ -670,9 +689,17 @@ function apiEnv(exampleContent, port) {
 
 function placeholderFor(key) {
   if (key === 'DATABASE_URL') {
-    // Deliberately a real-looking URL pointing nowhere. The API must still boot and serve
-    // /health; it is /ready that is allowed to report the database is down.
-    return process.env.SMOKE_DATABASE_URL ?? 'postgresql://smoke:smoke@127.0.0.1:5432/smoke';
+    // The case's own fresh database when a server is provided; otherwise a real-looking URL
+    // pointing nowhere. The API must still boot and serve /health; it is /ready that is allowed
+    // to report the database is down.
+    return (
+      caseDatabaseUrl ??
+      process.env.SMOKE_DATABASE_URL ??
+      'postgresql://smoke:smoke@127.0.0.1:5432/smoke'
+    );
+  }
+  if (key === 'REDIS_URL') {
+    return process.env.SMOKE_REDIS_URL ?? 'redis://127.0.0.1:6379';
   }
   // Anything a schema is likely to validate with `.url()`. A bare 'smoke' fails that check, and
   // the failure reads as a bug in the recipe rather than in this placeholder.
@@ -703,6 +730,9 @@ async function bootApi(dir, layer, workspace, probes = []) {
   child.stderr.on('data', (d) => (output += d));
   child.on('close', () => (exited = true));
 
+  // Documents a probe asked to keep (by name → file), for steps that run after the process is gone.
+  const saved = {};
+
   try {
     const health = await fetchWithRetry(`http://127.0.0.1:${port}/health`, {
       onFail: () => exited,
@@ -711,14 +741,19 @@ async function bootApi(dir, layer, workspace, probes = []) {
       throw new Error(`GET /health returned ${health.status}, expected 200\n${output}`);
     }
 
-    // /ready is allowed to fail — it checks the database, and the smoke run has none unless
-    // SMOKE_DATABASE_URL points at a real one. What matters is that it answers rather than
-    // hanging, and that it disagrees with /health when the database is down.
+    // /ready reports the dependencies the service declares — the database, Redis — so its
+    // expected answer follows what this run can reach. With every declared dependency provided
+    // (SMOKE_DATABASE_URL, SMOKE_REDIS_URL — the CI jobs set both) it must be 200: a real
+    // assertion that the client connected. With one missing it may be 503; what matters then is
+    // that it answers rather than hanging, and that it disagrees with /health.
     const ready = await fetch(`http://127.0.0.1:${port}/ready`).catch(() => null);
-    const expected = process.env.SMOKE_DATABASE_URL ? [200] : [503, 200];
+    const unreachable = unreachableDependencies(example);
+    const expected = unreachable.length === 0 ? [200] : [503, 200];
     if (!ready || !expected.includes(ready.status)) {
       throw new Error(
-        `GET /ready returned ${ready?.status ?? 'nothing'}, expected one of ${expected.join('/')}\n${output}`,
+        `GET /ready returned ${ready?.status ?? 'nothing'}, expected one of ${expected.join('/')}` +
+          (unreachable.length > 0 ? ` (${unreachable.join(', ')} not provided to this run)` : '') +
+          `\n${output}`,
       );
     }
 
@@ -753,12 +788,148 @@ async function bootApi(dir, layer, workspace, probes = []) {
           throw new Error(`${probe.name}: unexpected response\n${text.slice(0, 500)}`);
         }
       }
+      if (probe.saveAs) {
+        const file = path.join(workspace, `.smoke-${probe.saveAs}`);
+        await writeFile(file, text);
+        saved[probe.saveAs] = file;
+      }
     }
 
-    return { port, readyStatus: ready.status, probes: probes.length };
+    return { port, readyStatus: ready.status, probes: probes.length, saved };
   } finally {
     kill(child);
   }
+}
+
+let spectralStatus = null;
+
+/** Whether the pinned spectral can be fetched, probed once per run. */
+async function spectralAvailable() {
+  if (spectralStatus === null) {
+    const { code } = await run('npx', ['--yes', SPECTRAL, '--version'], { timeout: 180_000 });
+    spectralStatus = code === 0;
+  }
+  return spectralStatus;
+}
+
+/**
+ * Lints a served OpenAPI document with spectral's `oas` ruleset. A warning fails: doc 08 §3 asks
+ * for "valid 3.0, no rule violations", and a warning the generator emits into every project is a
+ * rule violation every project inherits.
+ */
+async function lintOpenApi(label, file) {
+  if (!(await spectralAvailable())) {
+    if (process.env.SMOKE_REQUIRE_TOOLCHAINS) {
+      await step(`${label}: spectral`, async () => {
+        throw new Error(
+          `${SPECTRAL} could not be fetched and SMOKE_REQUIRE_TOOLCHAINS is set. In CI a skipped ` +
+            `lint is a silent coverage hole, so it fails instead.`,
+        );
+      });
+      return;
+    }
+    console.log(
+      `\n  \x1b[33m⚠ ${label}: ${SPECTRAL} could not be fetched — OpenAPI lint SKIPPED.\x1b[0m`,
+    );
+    return;
+  }
+
+  await step(`${label}: spectral`, async () => {
+    const ruleset = path.join(path.dirname(file), '.spectral.yaml');
+    await writeFile(ruleset, 'extends: spectral:oas\n');
+    const { code, output } = await run(
+      'npx',
+      [
+        '--yes',
+        SPECTRAL,
+        'lint',
+        file,
+        '--ruleset',
+        ruleset,
+        '--fail-severity',
+        'warn',
+        '--display-only-failures',
+      ],
+      { timeout: 300_000 },
+    );
+    if (code !== 0) throw new Error(output);
+  });
+}
+
+/**
+ * Applies the layer's migrations against the case's fresh database, with the command the generated
+ * CI runs — the P3 gate's "migrations apply against a fresh DB in CI", proven here before any
+ * repository is provisioned. Only when a database is reachable: without one there is nothing to
+ * apply to, and the step is absent rather than skipped so the summary stays truthful.
+ */
+async function migrateLayer(layer, dir, label, layerEnv) {
+  if (!process.env.SMOKE_DATABASE_URL) return;
+  const has = (rel) =>
+    access(path.join(dir, rel)).then(
+      () => true,
+      () => false,
+    );
+
+  let command = null;
+  if (layer.toolchain === 'node') {
+    // Prisma's deploy script, or Drizzle's migrate — which errors on a missing journal directory
+    // rather than treating it as zero migrations, hence the same guard the generated CI has.
+    if (layer.scripts['db:deploy']) command = ['npm', ['run', 'db:deploy']];
+    else if (layer.scripts['db:migrate'] && (await has('drizzle')))
+      command = ['npm', ['run', 'db:migrate']];
+  } else if (layer.toolchain === 'python' && (await has('alembic.ini'))) {
+    command = ['uv', ['run', 'alembic', 'upgrade', 'head']];
+  } else if (layer.toolchain === 'go' && (await has('cmd/migrate/main.go'))) {
+    command = ['go', ['run', './cmd/migrate']];
+  }
+  if (!command) return;
+
+  await step(`${label}: migrate`, async () => {
+    const { code, output } = await run(command[0], command[1], {
+      cwd: dir,
+      timeout: 600_000,
+      env: layerEnv,
+    });
+    if (code !== 0) throw new Error(output);
+  });
+}
+
+/*
+ * One database per case. With SMOKE_DATABASE_URL set, every case gets its own freshly created
+ * database on that server and drops it afterwards, so a migration applied by one case cannot
+ * make the next one's pass (the tables already exist) or fail (they exist with a different
+ * shape). "Fresh" in the gate's wording is literal.
+ */
+let caseDatabaseUrl = null;
+
+function databaseNameFor(caseName) {
+  return `smoke_${caseName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`.slice(0, 63);
+}
+
+async function adminSql(statements) {
+  // `postgres` (porsager): a zero-dependency client, pinned in the root devDependencies.
+  const { default: postgres } = await import('postgres');
+  const sql = postgres(process.env.SMOKE_DATABASE_URL, { max: 1, onnotice: () => {} });
+  try {
+    for (const statement of statements) await sql.unsafe(statement);
+  } finally {
+    await sql.end();
+  }
+}
+
+async function createFreshDatabase(caseName) {
+  const name = databaseNameFor(caseName);
+  await adminSql([`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`, `CREATE DATABASE "${name}"`]);
+  const url = new URL(process.env.SMOKE_DATABASE_URL);
+  url.pathname = `/${name}`;
+  return url.toString();
+}
+
+async function dropDatabase(caseName) {
+  await adminSql([`DROP DATABASE IF EXISTS "${databaseNameFor(caseName)}" WITH (FORCE)`]).catch(
+    (err) =>
+      console.log(`  \x1b[33m⚠ could not drop ${databaseNameFor(caseName)}: ${err.message}\x1b[0m`),
+  );
 }
 
 async function bootWeb(dir, layerEnv = {}) {
@@ -823,7 +994,7 @@ async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv, probes 
           ['build', 'go', ['build', './...'], 600_000],
         ];
 
-  for (const [stepLabel, command, args, timeout, mode] of steps) {
+  for (const [index, [stepLabel, command, args, timeout, mode]] of steps.entries()) {
     await step(`${label}: ${stepLabel}`, async () => {
       // The layer's own documented environment, same as the node path: pytest imports the app,
       // the app parses Settings at import, and Settings requires the variables .env.example
@@ -835,13 +1006,38 @@ async function smokeNonNodeLayer(layer, dir, label, workspace, layerEnv, probes 
       }
     });
     if (currentCase.failed) return;
+
+    // Dependencies resolved, nothing tested yet — where the generated CI applies migrations too.
+    if (index === 0) {
+      await migrateLayer(layer, dir, label, layerEnv);
+      if (currentCase.failed) return;
+    }
   }
 
-  await step(`${label}: boot`, async () => bootApi(dir, layer, workspace, probes));
+  const booted = await step(`${label}: boot`, async () => bootApi(dir, layer, workspace, probes));
+  if (booted?.saved?.['openapi.json']) await lintOpenApi(label, booted.saved['openapi.json']);
 }
 
 async function smokeCase(name, workspaceRoot) {
   startCase(name);
+
+  if (process.env.SMOKE_DATABASE_URL) {
+    const url = await step('database', async () => createFreshDatabase(name));
+    if (!url) return;
+    caseDatabaseUrl = url;
+  }
+
+  try {
+    await smokeCaseLayers(name, workspaceRoot);
+  } finally {
+    if (caseDatabaseUrl) {
+      await dropDatabase(name);
+      caseDatabaseUrl = null;
+    }
+  }
+}
+
+async function smokeCaseLayers(name, workspaceRoot) {
   const {
     spineSpec,
     uiOnlyVercelSpec,
@@ -860,8 +1056,13 @@ async function smokeCase(name, workspaceRoot) {
     apiOnlyGraphqlSpec,
     apiOnlyTrpcSpec,
   };
-  const { fixture, override, probes } = CASES[name];
+  const { fixture, override } = CASES[name];
   const spec = fixtures[fixture](override);
+
+  // A case may name its probes; otherwise the API layer gets its paradigm's, so every REST case
+  // lints the OpenAPI document it serves and every GraphQL or tRPC case proves its transport —
+  // not only the cases that remembered to ask.
+  const probes = CASES[name].probes ?? (spec.api ? PARADIGM_PROBES[spec.api.paradigm] : null) ?? [];
 
   const workspace = path.join(workspaceRoot, name);
 
@@ -881,7 +1082,7 @@ async function smokeCase(name, workspaceRoot) {
     // failed for them on a fresh clone.
     const layerEnv = exampleEnv(
       await readFile(path.join(dir, '.env.example'), 'utf8').catch(() => null),
-      { DATABASE_URL: placeholderFor('DATABASE_URL') },
+      dependencyEnv(),
     );
 
     if (!(await toolchainAvailable(layer.toolchain))) {
@@ -932,6 +1133,9 @@ async function smokeCase(name, workspaceRoot) {
       });
     }
 
+    await migrateLayer(layer, dir, label, layerEnv);
+    if (currentCase.failed) return;
+
     /*
      * Lint and test run here because the generated CI runs them.
      *
@@ -976,10 +1180,12 @@ async function smokeCase(name, workspaceRoot) {
       if (code !== 0) throw new Error(output);
     });
 
-    await step(`${label}: boot`, async () =>
+    const booted = await step(`${label}: boot`, async () =>
       layer.kind === 'web' ? bootWeb(dir, layerEnv) : bootApi(dir, layer, workspace, probes),
     );
+    if (currentCase.failed) return;
 
+    if (booted?.saved?.['openapi.json']) await lintOpenApi(label, booted.saved['openapi.json']);
     if (currentCase.failed) return;
   }
 }
@@ -1005,12 +1211,28 @@ async function main() {
   const matrixArg = argv.includes('--matrix-case') ? argv[argv.indexOf('--matrix-case') + 1] : null;
 
   if (matrixArg) {
-    const { framework, styling, state, slug } = JSON.parse(matrixArg);
-    CASES[slug] = {
-      description: `T2 pairwise — ${framework} / ${styling} / ${state}`,
-      fixture: 'spineSpec',
-      override: { ui: { framework, styling, state }, meta: { slug } },
-    };
+    const combo = JSON.parse(matrixArg);
+    if (combo.runtime) {
+      // The P3 gate's axis: runtime × paradigm × ORM, API-only, with the paradigm's own probes.
+      const { runtime, paradigm, orm, slug } = combo;
+      CASES[slug] = {
+        description: `T2 API matrix — ${runtime} / ${paradigm} / ${orm}`,
+        fixture: 'spineSpec',
+        override: {
+          ui: null,
+          api: { runtime, paradigm, database: orm === 'none' ? 'none' : 'postgres', orm },
+          meta: { slug },
+        },
+        probes: PARADIGM_PROBES[paradigm] ?? [],
+      };
+    } else {
+      const { framework, styling, state, slug } = combo;
+      CASES[slug] = {
+        description: `T2 pairwise — ${framework} / ${styling} / ${state}`,
+        fixture: 'spineSpec',
+        override: { ui: { framework, styling, state }, meta: { slug } },
+      };
+    }
   }
 
   const only = matrixArg

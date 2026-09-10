@@ -14,9 +14,14 @@ YAML or Docker configuration.
 > **Phase 1 gate: passed on 2026-09-09.** A real repository was provisioned into the GitHub
 > organisation through the wizard. Wizard start to green CI took **5 min 46 s** against the
 > ten-minute target, and the clone installed, built and booted, with both container images built
-> locally. Still open: MongoDB and sqlc have no recipes yet and
-> are shown disabled with the phase they arrive in, and Phase 4 (catalog depth, health
-> reconciler, OpenAPI viewer, dogfood) has not started. Details and the measured run:
+> locally.
+>
+> **Phase 3 gate: passed on 2026-09-11.** Every valid runtime × paradigm × ORM combination — three
+> runtimes, REST/GraphQL/tRPC, seven ORMs, nineteen projects — installs, builds, boots, applies
+> its migrations against a fresh database and, for REST, serves an OpenAPI document spectral lints
+> clean. Still open: MongoDB and sqlc have no recipes yet and are shown disabled with the phase
+> they arrive in, and Phase 4 (catalog depth, health reconciler, OpenAPI viewer, dogfood) has not
+> started. Details and the measured runs:
 > [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start

@@ -361,13 +361,53 @@ and all four page modules, each smoke-verified.
       skip. Its first run caught eight ruff findings, a 404 envelope bug (FastAPI raises
       route-not-found as _starlette's_ HTTPException, and a handler on the subclass never sees
       it) and the LOG_LEVEL vocabulary drift.
-- [ ] Wizard: runtime-driven ORM and paradigm gating with stated reasons — both new runtimes are
-      out of "coming in P3" and selectable; the ORM-implementedness gating is still to build
-      (`sqlalchemy`, `beanie`, `sqlc`, `mongo-go`, `drizzle`, `mongoose` are offered by the
-      compatibility matrix but have no recipe yet).
+- [x] Wizard: runtime-driven ORM and paradigm gating with stated reasons — done. The ORM
+      implementedness table landed with Drizzle and SQLAlchemy (`sqlc` and the three Mongo ODMs
+      are disabled with a stated reason), and with GraphQL and tRPC shipped every paradigm is
+      selectable, gated per runtime by the compatibility matrix rather than by a coming-soon note.
 
 **Gate:** every valid runtime × paradigm × ORM combination passes T2. REST projects emit a
 spectral-clean OpenAPI 3.0 document. Migrations apply against a fresh DB in CI.
+
+_Gate run, 2026-09-11._ **Passed.** The matrix is now the second half of T2: `scripts/pairwise.mjs`
+enumerates every valid runtime × paradigm × ORM combination — nineteen API-only projects,
+exhaustive rather than sampled because the space is small — and hands each to the smoke harness
+with the paradigm's own probes: a REST service must serve `/openapi.json`, a GraphQL one must
+answer `{ health { status } }` on `/graphql` and serve its SDL, a tRPC one must answer
+`/trpc/health`. Run locally against a fresh Postgres 17 and Redis 7 with migrations applied and
+the OpenAPI document linted: **19 of 19**. Nightly runs the same list, with both services, beside
+the UI pairwise.
+
+The three clauses, and what running them found:
+
+- **Every combination passes T2.** Eight of nineteen failed the first run, none in a path a named
+  smoke case had ever taken. The Node GraphQL recipe imported `DataLoader` for a Prisma-only
+  example and failed its own lint under Drizzle or no database; the FastAPI package docstring and
+  the GraphQL test's expected value each put the slug on one line and broke ruff's 100 columns
+  for any slug over about thirty characters. All invisible to the fixtures, which pick Prisma and
+  short slugs.
+- **REST projects emit a spectral-clean document.** Spectral had never been run. It runs inside the
+  smoke harness now — the document is built at runtime from the route schemas on every runtime, so
+  it can only be linted from a booted process — with the `oas` ruleset at warning severity, on every
+  REST case, named or matrix. First run: seven warnings on Node (no contact; no operationId, tag or
+  description on the two probes), two on Python (the `health` tag used but never declared), two on
+  Go (no servers, no contact). All fixed in the templates; all three runtimes lint clean. Python
+  and Go emit OpenAPI 3.1, as recorded under the FastAPI runtime; the gate's "3.0" is read as "a
+  valid document under the current ruleset".
+- **Migrations apply against a fresh DB in CI.** Only Prisma and Drizzle had a step in the generated
+  `ci.yml`; Alembic and goose have one now, and the API job carries the service's documented
+  environment — every runtime parses its configuration at start-up and stops on a missing key, so
+  a job that set only `DATABASE_URL` failed `uv run pytest` at collection for any FastAPI project
+  with JWT auth. The smoke harness applies the same commands against a database created for each
+  case (`SMOKE_DATABASE_URL`; the PR and nightly jobs provide one, and a Redis for the cache
+  layer's readiness check). First run: **goose could not parse the baseline migration the
+  generator ships** — a comment line that mentioned the two annotations in prose was read as an
+  annotation — so `go run ./cmd/migrate` had never worked on a generated GORM project.
+  `ci-workflow-contract.test.ts` holds the CI half of this clause.
+
+Caught on the way: the Redis cache layer made `/ready` report 503 in the PR smoke job, which
+provides Postgres and had no Redis. The harness now expects 200 exactly when every dependency the
+service declares is reachable, and both jobs provide both.
 
 ---
 

@@ -17,15 +17,47 @@ env:
   HUSKY: 0
 
 jobs:
-  # The P2 gate: every framework × styling × state pair installs, builds and boots.
-  #
-  # Pairwise rather than exhaustive — 12 runs instead of 36. `scripts/pairwise.mjs` computes the
-  # selection and prints a proof that every pair is covered; it fails if one is missed, so the
-  # reduction cannot silently become a gap.
+  # Two gates in one job. The P2 gate: every framework × styling × state pair installs, builds and
+  # boots — pairwise rather than exhaustive, 12 runs instead of 36, with `scripts/pairwise.mjs`
+  # printing the proof that every pair is covered and failing if one is missed. The P3 gate: every
+  # valid runtime × paradigm × ORM combination passes — nineteen API-only projects, enumerated in
+  # full because the space is small, each booted and probed through its own paradigm.
   pairwise:
-    name: T2 pairwise matrix
+    name: T2 matrix (UI pairwise + every API combination)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smoke
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Every API combination gets a database created for it on this server, applies its
+      # migrations with the command its generated CI runs, and must answer /ready with 200 —
+      # the gate's "migrations apply against a fresh DB", literally. The combinations inherit the
+      # spine's Redis cache layer, so its readiness check needs a Redis to reach as well.
+      SMOKE_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/smoke
+      SMOKE_REDIS_URL: redis://127.0.0.1:6379
+      # A missing uv or go fails the run rather than silently skipping half the matrix.
+      SMOKE_REQUIRE_TOOLCHAINS: "1"
 
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +73,14 @@ jobs:
       # The harness imports the built packages rather than the sources.
       - name: Build
         run: npm run build
+
+      # The API half runs Python and Go projects, so it needs their toolchains — the same ones the
+      # PR smoke job installs. Go is preinstalled on the runner; uv is not.
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
 
       # Cheap and first: if a combination cannot even generate, there is no point installing
       # anything. This also prints the coverage proof into the log.

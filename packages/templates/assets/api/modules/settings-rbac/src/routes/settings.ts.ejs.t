@@ -54,6 +54,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Organisation settings',
+        operationId: 'getSettings',
+        description: 'Returns the organisation’s settings.',
         response: { 200: orgSettingsSchema, ...commonResponses },
       },
     },
@@ -67,6 +69,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Update organisation settings',
+        operationId: 'updateSettings',
+        description: 'Changes only the fields given and records the change in the audit log.',
         body: updateOrgSettingsSchema,
         response: { 200: orgSettingsSchema, ...commonResponses },
       },
@@ -99,6 +103,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'The effective permission matrix',
+        operationId: 'getPermissionMatrix',
+        description: 'Returns which permissions each role holds, as currently enforced.',
         response: { 200: permissionMatrixSchema, ...commonResponses },
       },
     },
@@ -112,6 +118,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Replace the permission matrix',
+        operationId: 'replacePermissionMatrix',
+        description: 'Replaces the whole matrix in one write and records the change in the audit log.',
         body: saveMatrixSchema,
         response: { 200: permissionMatrixSchema, ...conflict, ...commonResponses },
       },
@@ -153,6 +161,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Audit log, newest first',
+        operationId: 'listAuditLog',
+        description:
+          'Returns one page of audit entries, newest first. Page with the cursor the response ' +
+          'returns.',
         querystring: auditLogQuerySchema,
         response: { 200: paginatedSchema(auditLogSchema), ...commonResponses },
       },
@@ -182,6 +194,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'API keys — prefixes only, never the keys themselves',
+        operationId: 'listApiKeys',
+        description:
+          'Returns every API key’s metadata and prefix. The key itself is shown once, at ' +
+          'creation, and never again.',
         response: { 200: z.object({ data: z.array(apiKeySchema) }), ...commonResponses },
       },
     },
@@ -197,6 +213,10 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Create an API key',
+        operationId: 'createApiKey',
+        description:
+          'Creates a key and returns it in full exactly once; only its prefix and a hash are ' +
+          'stored.',
         body: createApiKeySchema,
         response: { 201: createdApiKeySchema, ...commonResponses },
       },
@@ -232,6 +252,8 @@ export async function registerSettingsRoutes(app: FastifyInstance): Promise<void
       schema: {
         tags: ['settings'],
         summary: 'Revoke an API key',
+        operationId: 'revokeApiKey',
+        description: 'Marks the key revoked so it stops authenticating, and records the revocation.',
         params: idParamSchema,
         response: { 200: apiKeySchema, ...commonResponses },
       },

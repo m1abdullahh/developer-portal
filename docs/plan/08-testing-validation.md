@@ -65,6 +65,14 @@ for each spec in SMOKE_MATRIX:
 Pairwise is the key trade: it catches essentially all two-way interaction bugs (which is what
 composition bugs are) at ~3% of the cost of exhaustive coverage.
 
+_As built (2026-09-11):_ T2 has two halves in `scripts/pairwise.mjs`. The UI axes are pairwise
+(12 of 36); the API axes — runtime × paradigm × ORM, 19 valid combinations — are enumerated in
+full, because the space is small enough that sampling would save little and the P3 gate asks for
+every one. Each API case boots with its paradigm's own probes, applies its migrations against a
+database created for the case, and, for REST, has the served `/openapi.json` linted by spectral —
+which is where the spectral row of §1 actually runs: the document is built at runtime from the
+route schemas on every runtime, so it can only be linted from a booted process.
+
 **Known coverage gap:** Docker is not installed on the build machine, so `docker build` of generated
 Dockerfiles is not exercised locally. Compensating controls: hadolint on every commit, `docker build`
 (no push) in the _generated repo's_ `ci.yml`, and a GitHub-hosted runner job in our own nightly that

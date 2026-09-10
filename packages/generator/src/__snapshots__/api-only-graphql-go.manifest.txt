@@ -1,7 +1,7 @@
 12a9f2439d43  .dockerignore
 b9acb53279c1  .env.example
 81de040c89b3  .github/workflows/cd.yml
-b154157a568e  .github/workflows/ci.yml
+1a193753d52f  .github/workflows/ci.yml
 dd0bf77db10c  .gitignore
 12a0c7ad3aca  cmd/api/main.go
 2daedad95e0e  cmd/migrate/main.go
@@ -29,7 +29,7 @@ e76341691c03  go.mod
 57546d60a2cc  internal/cache/redis.go
 5f5929ef6429  internal/config/config.go
 8a599cc390e2  internal/db/db.go
-d70763d9c718  internal/db/migrations/00001_baseline.sql
+e699808e85a3  internal/db/migrations/00001_baseline.sql
 3e6429ab9fa8  internal/graphql/context.go
 9e18f028b6d0  internal/graphql/graphql_test.go
 b170a3a11387  internal/graphql/graphql.go

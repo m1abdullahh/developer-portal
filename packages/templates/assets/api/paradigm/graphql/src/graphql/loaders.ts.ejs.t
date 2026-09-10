@@ -1,8 +1,8 @@
 ---
 to: src/graphql/loaders.ts
 ---
-import DataLoader from 'dataloader';
 <% if (spec.api.orm === 'prisma') { -%>
+import DataLoader from 'dataloader';
 import { prisma } from '../lib/prisma.js';
 import type { Example } from '../generated/graphql/types.js';
 <% } -%>
@@ -19,7 +19,9 @@ import type { Example } from '../generated/graphql/types.js';
  * through the marker regions.
  */
 <% if (spec.api.orm !== 'prisma') { -%>
-// Empty until a page module or your own code adds a loader — the wiring is what matters.
+// Empty until a page module or your own code adds a loader — the wiring is what matters. The
+// `dataloader` package is installed; `import DataLoader from 'dataloader'` when you add the first.
+// (Importing it here unused would fail the project's own lint on the very first run.)
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 <% } -%>
 export interface Loaders {

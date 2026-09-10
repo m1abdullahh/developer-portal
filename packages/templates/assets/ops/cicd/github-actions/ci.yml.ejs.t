@@ -76,8 +76,21 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+<% } -%>
+<% if (spec.api.database === 'postgres' || apiEnv.length > 0) { -%>
     env:
+<% if (spec.api.database === 'postgres') { -%>
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+<% } -%>
+<% if (apiEnv.length > 0) { -%>
+      # The service's documented environment, so the steps below run the way they do against a
+      # developer's .env. Configuration is parsed at start-up and a missing key stops the process
+      # — which is right for a pod and would be a failed test collection here. These are the
+      # .env.example values; secrets get throwaway values that exist only inside this job.
+<% for (const v of apiEnv) { -%>
+      <%= v.key %>: '<%= v.value %>'
+<% } -%>
+<% } -%>
 <% } -%>
     steps:
       - uses: actions/checkout@v4
@@ -138,6 +151,13 @@ jobs:
       - name: Install
         run: |
           if [ -f uv.lock ]; then uv sync --frozen --all-groups; else uv sync --all-groups; fi
+<% if (spec.api.orm === 'sqlmodel' || spec.api.orm === 'sqlalchemy') { -%>
+      # Against the job's fresh Postgres, before the tests. A freshly scaffolded repository has no
+      # revisions yet; `upgrade head` is then a no-op that still proves migrations/env.py loads
+      # the app's settings and reaches the database.
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+<% } -%>
       # `ruff format --check`, not `ruff format`: CI must report a formatting drift, not silently
       # fix it in a checkout nobody keeps.
       - run: uv run ruff check .
@@ -155,6 +175,12 @@ jobs:
       - name: Resolve modules
         run: |
           if [ ! -f go.sum ]; then go mod tidy; fi
+<% if (spec.api.orm === 'gorm') { -%>
+      # Against the job's fresh Postgres, before the tests — the same command a Kubernetes Job
+      # runs, so a migration that cannot apply fails here rather than in a deploy.
+      - name: Apply migrations
+        run: go run ./cmd/migrate
+<% } -%>
       # `gofmt -l` lists rather than fixes: CI must report a formatting drift, not silently
       # rewrite a checkout nobody keeps.
       - name: Check formatting

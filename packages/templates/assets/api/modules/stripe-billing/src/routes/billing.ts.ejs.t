@@ -40,6 +40,8 @@ export async function registerBillingRoutes(app: FastifyInstance): Promise<void>
       schema: {
         tags: ['billing'],
         summary: 'The plans this service sells',
+        operationId: 'listPlans',
+        description: 'Returns the plans configured for this service.',
         response: { 200: z.object({ data: z.array(planSchema) }), ...commonResponses },
       },
     },
@@ -53,6 +55,10 @@ export async function registerBillingRoutes(app: FastifyInstance): Promise<void>
       schema: {
         tags: ['billing'],
         summary: 'The current subscription, from the local cache',
+        operationId: 'getSubscription',
+        description:
+          'Returns the caller’s subscription as last mirrored from Stripe’s webhooks, or null ' +
+          'before any.',
         response: { 200: subscriptionSchema, ...commonResponses },
       },
     },
@@ -88,6 +94,10 @@ export async function registerBillingRoutes(app: FastifyInstance): Promise<void>
       schema: {
         tags: ['billing'],
         summary: 'Start a Checkout session for a plan',
+        operationId: 'createCheckoutSession',
+        description:
+          'Creates a Stripe Checkout session for the chosen plan and returns the URL to send ' +
+          'the customer to.',
         body: checkoutSessionSchema,
         // 502 is declared, not merely returned. The Zod type provider narrows `reply.status()` to
         // the codes in this map, so an undocumented status is a compile error — which is the
@@ -151,6 +161,8 @@ export async function registerBillingRoutes(app: FastifyInstance): Promise<void>
       schema: {
         tags: ['billing'],
         summary: 'Open the Stripe Customer Portal',
+        operationId: 'createBillingPortalSession',
+        description: 'Creates a Stripe Customer Portal session for the caller and returns its URL.',
         response: {
           200: redirectSchema,
           409: errorSchema.describe('No billing account exists yet'),
@@ -187,6 +199,8 @@ export async function registerBillingRoutes(app: FastifyInstance): Promise<void>
       schema: {
         tags: ['billing'],
         summary: 'Invoice history, read live from Stripe',
+        operationId: 'listInvoices',
+        description: 'Returns the caller’s invoices, read from Stripe rather than from a local mirror.',
         response: { 200: z.object({ data: z.array(invoiceSchema) }), ...commonResponses },
       },
     },
