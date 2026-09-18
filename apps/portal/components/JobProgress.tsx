@@ -207,7 +207,7 @@ export function JobProgress({ jobId, initial }: { jobId: string; initial: JobVie
             <Button>Open the repository</Button>
           </a>
           {job.slug ? (
-            <Link href={`/catalog/${job.slug}`}>
+            <Link href={job.org ? `/catalog/${job.org}/${job.slug}` : `/catalog/${job.slug}`}>
               <Button variant="secondary">View in catalog</Button>
             </Link>
           ) : null}

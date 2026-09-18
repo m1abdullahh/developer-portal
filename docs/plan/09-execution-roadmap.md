@@ -441,7 +441,31 @@ service declares is reachable, and both jobs provide both.
   `next.config.ts` gained an opt-in `NEXT_DIST_DIR`, because measuring a production build meant
   building beside a live portal, and `next build` rewrites the directory `next start` serves.
 
-- [ ] Service detail: Overview / Stack / API / Deployments / Activity tabs
+- [x] Service detail: Overview / Stack / API / Deployments / Activity tabs — done, at
+      `/catalog/[org]/[slug]`. The ID alone is unique only within an organisation, so the old
+      `/catalog/<slug>` address could name two services; it still resolves, by redirecting when
+      there is one match and asking which when there are several. The tab is part of the URL.
+
+  The decision worth recording: **generated output is regenerated, not stored.** The README, the
+  recipes with their file counts and the chart's values per environment are reproduced from the
+  service's stored ProjectSpec by the same pipeline that provisioned it — possible only because
+  the pipeline is deterministic and filesystem-free (doc 05), and it means there is nothing to
+  keep in sync. One run is shared by the three tabs that need it, cached by the spec's hash (a
+  lifecycle edit touches the row and not the spec, so it is not a reason to run the generator
+  again), and streamed in behind the page shell. Measured on a production build: first byte in
+  about 40 ms; the generated section follows in 0.4 s for a Go API and 1.2 s for the full-stack
+  spine on first view, and the whole page in under 0.1 s on a revisit. The page says what it is
+  showing — the repository _as generated_, not as it stands today; reading the live repository
+  is the reconciler's job.
+
+  The spec is read as `unknown` throughout, so a service written under an older schema shows
+  fewer rows rather than refusing to open, and the spec sheet is tested against all nineteen
+  API combinations and all thirty-six UI ones. Live status — ArgoCD sync and health, the
+  deployed image, recent commits and workflow runs — reads "not checked yet" until the
+  reconciler exists: nothing is shown as healthy until something has looked. The lifecycle
+  editor is an admin-only server action, and its refusals are asserted against the action
+  itself, since the browser suite signs in as an admin and can only show that it works.
+
 - [ ] OpenAPI viewer (Scalar) with 3-tier source resolution + GraphQL SDL + tRPC shape
 - [ ] Health reconciler (GitHub + ArgoCD) with rate-limit-safe batching
 - [ ] Orphan repo detection and one-click import

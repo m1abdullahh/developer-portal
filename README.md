@@ -21,8 +21,9 @@ YAML or Docker configuration.
 > its migrations against a fresh database and, for REST, serves an OpenAPI document spectral lints
 > clean. Still open: MongoDB and sqlc have no recipes yet and are shown disabled with the phase
 > they arrive in. Phase 4 is under way: the catalog dashboard (filters in the URL, search, sorts,
-> grid and table, fleet stats with the measured median provision time) is in; the service detail
-> tabs, health reconciler, OpenAPI viewer and dogfood run are still to come. Details and the measured runs:
+> grid and table, fleet stats with the measured median provision time) and the service detail
+> page with its five tabs are in; the OpenAPI viewer, health reconciler and dogfood run are still
+> to come. Details and the measured runs:
 > [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start

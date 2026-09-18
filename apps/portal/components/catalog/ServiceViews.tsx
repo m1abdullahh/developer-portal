@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cn } from '../../lib/cn';
 import { facetLabel, relativeTime, type CatalogEntry, type CiStatus } from '../../lib/catalog';
+import { serviceHref } from '../../lib/service-detail';
 import { Badge, Card, type BadgeTone } from '../ui';
 
 const LIFECYCLE_TONES: Record<string, BadgeTone> = {
@@ -79,7 +80,7 @@ export function ServiceGrid({ entries, now }: { entries: readonly CatalogEntry[]
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
-                  href={`/catalog/${entry.slug}`}
+                  href={serviceHref(entry.org, entry.slug)}
                   className="focus-ring text-sm font-medium underline-offset-4 hover:underline"
                 >
                   {entry.displayName}
@@ -151,7 +152,7 @@ export function ServiceTable({ entries, now }: { entries: readonly CatalogEntry[
             <tr key={entry.id} className="hover:bg-[hsl(var(--muted))]/50">
               <th scope="row" className="px-4 py-2.5 font-normal">
                 <Link
-                  href={`/catalog/${entry.slug}`}
+                  href={serviceHref(entry.org, entry.slug)}
                   className="focus-ring text-sm font-medium underline-offset-4 hover:underline"
                 >
                   {entry.displayName}

@@ -106,9 +106,28 @@ test('provisions a project end to end', async ({ page }) => {
   await page.goto('/catalog');
   await expect(page.getByRole('link', { name: 'E2E Service' }).first()).toBeVisible();
 
-  await page.getByRole('link', { name: 'E2E Service' }).first().click();
-  // The stored spec is the provenance record — it is the point of the catalog.
+  // This run's own service: the database outlives a run, so "E2E Service" alone is ambiguous.
+  await page.goto(`/catalog?q=${slug}`);
+  await page.getByRole('link', { name: 'E2E Service' }).click();
+  await expect(page).toHaveURL(new RegExp(`/catalog/e2e-org/${slug}$`));
+
+  // The stored spec is the provenance record — it is the point of the catalog. The Stack tab
+  // reads the choices back in the wizard's own words, and keeps the JSON itself one click away.
+  await page
+    .getByRole('navigation', { name: 'Service sections' })
+    .getByRole('link', { name: 'Stack' })
+    .click();
+  await expect(page.getByText(slug, { exact: true })).toBeVisible();
+  await page.getByText('Show the JSON').click();
   await expect(page.getByText('specVersion')).toBeVisible();
+
+  // And the run that made it is on the Activity tab, stage by stage.
+  await page
+    .getByRole('navigation', { name: 'Service sections' })
+    .getByRole('link', { name: 'Activity' })
+    .click();
+  await expect(page.getByText('completed', { exact: true })).toBeVisible();
+  await expect(page.getByText('render', { exact: true })).toBeVisible();
 });
 
 test('blocks navigation until the required fields are valid', async ({ page }) => {

@@ -122,7 +122,8 @@ a job that failed at the catalog-write step, and repos created before the portal
 
 - [x] Catalog lists every provisioned service with correct stack badges
 - [x] Filters and search compose correctly and are reflected in the URL
-- [ ] Service detail renders the full spec accurately for every stack combination
+- [x] Service detail renders the full spec accurately for every stack combination — the spec
+      sheet is tested against all 19 API and all 36 UI combinations
 - [ ] OpenAPI viewer renders from a committed spec when the service is not deployed
 - [ ] Invalid OpenAPI shows validation errors, not a blank viewer
 - [ ] GraphQL services render SDL; tRPC services render the router shape
