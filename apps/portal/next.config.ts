@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['@prisma/client', '@prisma/adapter-better-sqlite3'],
 
   typedRoutes: true,
+
+  // Opt-in, for building beside a running server. `next build` rewrites its output directory in
+  // place, and a `next start` serving from that directory starts failing requests halfway
+  // through — so a build that must not disturb a live portal goes somewhere else:
+  // `NEXT_DIST_DIR=.next-verify next build`. Unset, this is `.next` as always.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
 };
 
 export default nextConfig;

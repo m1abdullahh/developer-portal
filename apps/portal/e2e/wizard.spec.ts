@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { signIn } from './sign-in';
 import { API_PARADIGMS, API_RUNTIMES, AUTH_MODES, DATABASES } from '../lib/labels';
 
 /**
@@ -12,22 +13,6 @@ import { API_PARADIGMS, API_RUNTIMES, AUTH_MODES, DATABASES } from '../lib/label
  * The remote is the only thing stubbed. `VCS_DRIVER=filesystem` means the provision is real
  * through every stage and lands on disk instead of GitHub.
  */
-
-/**
- * Signs in through the development credentials provider.
- *
- * Waits for the redirect *away* from /signin rather than for any element containing "e2e" — the
- * sign-in button itself reads "Development sign-in (e2e)", so a text match succeeds instantly on
- * the page we are trying to leave, and the next navigation then races the session cookie.
- */
-async function signIn(page: Page): Promise<void> {
-  await page.goto('/signin');
-  await page.getByRole('button', { name: /development sign-in/i }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith('/signin'), { timeout: 30_000 });
-
-  // The role badge only renders for an authenticated session, so it proves the cookie landed.
-  await expect(page.getByText('admin', { exact: true })).toBeVisible();
-}
 
 /** A slug that cannot collide with another run — the duplicate guard is doing its job. */
 function uniqueSlug(): string {
@@ -151,17 +136,25 @@ test('applies the compatibility matrix as options change', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Backend' })).toBeVisible();
 
   /*
-   * tRPC is unavailable, and today that is because it has no recipe rather than because of
-   * contradiction 3 from the PRD. This comment used to claim the latter, which was wrong in a way
-   * the passing test concealed: the default runtime here is Node, where tRPC is perfectly
-   * compatible — it is disabled by its coming-soon note, and the assertion could not tell the
-   * difference.
+   * Contradiction 3 from the PRD: tRPC's whole value is end-to-end TypeScript inference, so it
+   * cannot target Python or Go. Under the default runtime, Node, it is a real choice; choose
+   * FastAPI and it must become unavailable *and say why*; go back and it must return.
    *
-   * Left as-is rather than rewritten to select a Python runtime first, because the honest version
-   * of the compatibility assertion belongs with the gating work in P3, not smuggled in here.
+   * This used to assert only that tRPC was disabled, which passed for the wrong reason — it had
+   * no recipe yet, and the assertion could not tell a coming-soon note from the matrix. It then
+   * failed the day tRPC shipped. This is the assertion it was always meant to be.
    */
   const trpc = page.getByRole('radio', { name: /tRPC/ });
+  await expect(trpc).toBeEnabled();
+
+  await page.getByRole('radio', { name: API_RUNTIMES['python-fastapi'].label }).click();
   await expect(trpc).toBeDisabled();
+  await expect(trpc).toContainText('tRPC requires the Node.js (TypeScript) runtime');
+
+  // Anchored at the start: while tRPC is unavailable its own card names the Node runtime in its
+  // reason, so the unanchored label matches two radios.
+  await page.getByRole('radio', { name: /^Node\.js \(TypeScript\)/ }).click();
+  await expect(trpc).toBeEnabled();
 
   // Removing the database must remove the ORM section entirely rather than offering an ORM
   // with nothing to talk to.

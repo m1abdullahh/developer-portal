@@ -57,14 +57,15 @@ jobs:
       - name: Architecture rules
         run: npm run depcruise
 
-  # Drives the wizard in a browser: five steps, a real provision, the catalog.
+  # Drives the portal in a browser: the wizard's five steps and a real provision, and the
+  # catalog's filters, search, sorts and shareable URLs over a seeded fleet.
   #
   # Separate from `verify` because it needs a browser download and a running server, and separate
   # from `smoke` because it tests the product rather than the output. It found two real bugs on
   # its first run — a duplicated stage list and a hydration failure — neither visible to any
   # test that does not actually click.
   e2e:
-    name: E2E (wizard)
+    name: E2E (portal)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

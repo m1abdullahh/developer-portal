@@ -66,6 +66,10 @@ module.exports = {
         path: '^(packages|apps)/',
         pathNot: [
           '\\.(test|spec)\\.tsx?$',
+          // Everything under an e2e directory is the browser suite — its helpers as much as its
+          // specs. A shared sign-in helper importing @playwright/test is a test importing its
+          // runner, not production code reaching for a devDependency.
+          '/e2e/',
           // Build-time config runs under the CLI that owns it, so importing that CLI's
           // types from devDependencies is correct (e.g. prisma.config.ts -> prisma/config).
           '\\.config\\.(js|cjs|mjs|ts)$',

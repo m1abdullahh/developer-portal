@@ -413,7 +413,34 @@ service declares is reachable, and both jobs provide both.
 
 ## P4 — Catalog, DevOps Breadth & Dogfood (docs 04, 07, 08)
 
-- [ ] Catalog dashboard: grid/table, filters in URL, search, sort, fleet stats + median-provision-time tile
+- [x] Catalog dashboard: grid/table, filters in URL, search, sort, fleet stats +
+      median-provision-time tile — done. The page is a function of its URL: `lib/catalog.ts`
+      parses the query string to a query, filters, searches, sorts and paginates the fleet, counts
+      the facets and computes the fleet stats, all as pure functions (42 unit tests); every
+      control on the page is a link to the URL of the view it produces, so a filtered catalog is
+      shareable by construction and works before hydration. Stack facets are read out of each
+      stored ProjectSpec, not from columns of their own, so they are filtered in memory — 2,000
+      services take a few milliseconds.
+
+  Three things found by running it rather than by reading it:
+
+  - **A repeated query key is one page to the App Router.** Filters first travelled as
+    `?runtime=go-gin&runtime=python-fastapi`, which is what `searchParams` models as `string[]`.
+    The router identifies a page by the _last_ value of a repeated key, so removing the first of
+    two filters changed the address bar, fetched the right payload, and re-rendered nothing. The
+    server was right every time; only the browser suite (`e2e/catalog.spec.ts`) could see it.
+    A facet's values now travel in one parameter — `runtime=go-gin,python-fastapi`.
+  - **Rendering, not querying, was the cost.** With 205 services the data load took 15 ms and the
+    page over two seconds: two hundred cards of markup. The catalog now pages at 48. Measured on
+    a production build with 205 services: 0.12 s to serve, 0.2–0.5 s to the browser's load
+    event, against the one-second bar in doc 07 §7.
+  - **The filter bar was decided from the current view**, so it rearranged as filters were applied
+    and vanished on a search with no results — exactly when it is needed. It is decided from the
+    fleet.
+
+  `next.config.ts` gained an opt-in `NEXT_DIST_DIR`, because measuring a production build meant
+  building beside a live portal, and `next build` rewrites the directory `next start` serves.
+
 - [ ] Service detail: Overview / Stack / API / Deployments / Activity tabs
 - [ ] OpenAPI viewer (Scalar) with 3-tier source resolution + GraphQL SDL + tRPC shape
 - [ ] Health reconciler (GitHub + ArgoCD) with rate-limit-safe batching

@@ -20,8 +20,9 @@ YAML or Docker configuration.
 > runtimes, REST/GraphQL/tRPC, seven ORMs, nineteen projects — installs, builds, boots, applies
 > its migrations against a fresh database and, for REST, serves an OpenAPI document spectral lints
 > clean. Still open: MongoDB and sqlc have no recipes yet and are shown disabled with the phase
-> they arrive in, and Phase 4 (catalog depth, health reconciler, OpenAPI viewer, dogfood) has not
-> started. Details and the measured runs:
+> they arrive in. Phase 4 is under way: the catalog dashboard (filters in the URL, search, sorts,
+> grid and table, fleet stats with the measured median provision time) is in; the service detail
+> tabs, health reconciler, OpenAPI viewer and dogfood run are still to come. Details and the measured runs:
 > [docs/plan/09-execution-roadmap.md](docs/plan/09-execution-roadmap.md).
 
 ## Quick start

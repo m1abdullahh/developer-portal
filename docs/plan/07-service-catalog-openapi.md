@@ -120,8 +120,8 @@ a job that failed at the catalog-write step, and repos created before the portal
 
 ## 7. Acceptance criteria
 
-- [ ] Catalog lists every provisioned service with correct stack badges
-- [ ] Filters and search compose correctly and are reflected in the URL
+- [x] Catalog lists every provisioned service with correct stack badges
+- [x] Filters and search compose correctly and are reflected in the URL
 - [ ] Service detail renders the full spec accurately for every stack combination
 - [ ] OpenAPI viewer renders from a committed spec when the service is not deployed
 - [ ] Invalid OpenAPI shows validation errors, not a blank viewer
@@ -131,4 +131,5 @@ a job that failed at the catalog-write step, and repos created before the portal
 - [ ] Orphaned repos appear in the Unregistered list and import correctly
 - [ ] Regenerate opens a PR and never force-pushes
 - [ ] Non-org-members cannot authenticate; `viewer` role cannot reach the wizard
-- [ ] Catalog loads in < 1 s with 200 services
+- [x] Catalog loads in < 1 s with 200 services — 0.12 s to serve and under 0.5 s to the load event
+      on a production build with 205, paged at 48
